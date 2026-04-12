@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 import appManager from './app-manager/app-manager.ts';
 
 appManager.start().catch((error) => {
