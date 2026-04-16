@@ -13,10 +13,6 @@ export class AdjustTechstackCommand extends BaseCommand<string> {
   }
 
   async execute(): Promise<string> {
-    const preferences = JSON.parse(
-      (await this.localStorageService.loadPreferences()) || '{}'
-    );
-
     const result = await input({
       message: this.message,
       validate: (value: string) => {
@@ -27,16 +23,14 @@ export class AdjustTechstackCommand extends BaseCommand<string> {
       console.log("Techstack won't be overridden.");
     }
 
-    const parsedPreferences = JSON.stringify({
-      ...preferences,
-      ...this.parseTechstack(result),
-    });
-
-    this.localStorageService.savePreferences(parsedPreferences);
+    this.localStorageService.savePreferences(
+      'techstack',
+      this.parseTechstack(result)
+    );
     return result;
   }
 
-  private parseTechstack(techstack: string): Record<'techstack', string[]> {
-    return { techstack: techstack.split(',').filter(Boolean) };
+  private parseTechstack(techstack: string): string[] {
+    return techstack.split(',').filter(Boolean);
   }
 }

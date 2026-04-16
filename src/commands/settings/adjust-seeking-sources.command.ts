@@ -1,4 +1,4 @@
-import { checkbox, select } from '@inquirer/prompts';
+import { checkbox } from '@inquirer/prompts';
 import { BaseCommand } from '../base-command.ts';
 import { SelectChoiceItem } from '../../common/inquirer.js';
 import { LocalStorageService } from '../../services/local-storage.service.ts';
@@ -15,11 +15,8 @@ export class AdjustSeekingSourcesCommand<
   }
 
   async execute(): Promise<T | T[]> {
-    const currentPreferences = JSON.parse(
-      (await this.localStorageService.loadPreferences()) || '{}'
-    );
-
-    const currentSeekingSources = currentPreferences.seekingSources;
+    const currentSeekingSources =
+      await this.localStorageService.loadPreferences('seekingSources');
     const choices = this.choices.map((choice) => ({
       ...choice,
       checked: currentSeekingSources?.includes(choice.value),
@@ -30,9 +27,7 @@ export class AdjustSeekingSourcesCommand<
       choices,
     });
 
-    this.localStorageService.savePreferences(
-      JSON.stringify({ ...currentPreferences, seekingSources: result })
-    );
+    this.localStorageService.savePreferences('seekingSources', result);
     return result;
   }
 }

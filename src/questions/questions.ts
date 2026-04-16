@@ -7,6 +7,7 @@ import { ShowTechstackCommand } from '../commands/techstack/show-techstack.comma
 import { LocalStorageService } from '../services/local-storage.service.ts';
 import { AdjustSeekingSourcesCommand } from '../commands/settings/adjust-seeking-sources.command.ts';
 import { ShowSettingsMenuCommand } from '../commands/settings/show-settings-menu.command.ts';
+import { SeekJobService } from '../services/seek-job.service.ts';
 
 const commandKeysValues = {
   'show-main-menu': ['exit', 'settings'] as const,
@@ -24,73 +25,83 @@ const commandKeysValues = {
 
 type CommandKey = keyof typeof commandKeysValues;
 
-export const commandsSet = new Map<
-  CommandKey,
-  BaseCommand<CommandKey[keyof CommandKey]>
->([
-  [
-    'show-main-menu',
-    new ShowMainMenuCommand('Main Menu', [
-      { name: 'Seek job', value: 'seek-job' },
-      { name: 'My techstack', value: 'show-techstack' },
-      { name: 'Settings', value: 'show-settings-menu' },
-      { name: 'Exit', value: 'exit' },
-    ]),
-  ],
-  [
-    'show-settings-menu',
-    new ShowSettingsMenuCommand('Settings', [
-      { name: 'Adjust seeking sources', value: 'adjust-seeking-sources' },
-      { name: 'Go to main menu', value: 'show-main-menu' },
-    ]),
-  ],
-  [
-    'seek-job',
-    new SeekJobCommand('Seeking for the jobs...', [
-      { name: 'Return to main menu', value: 'show-main-menu' },
-    ]),
-  ],
-  [
-    'show-techstack',
-    new ShowTechstackCommand(
-      'What would you like to do?',
-      [
-        { name: 'Adjust stack', value: 'adjust-techstack' },
+const buildCommandsSet = () =>
+  new Map<CommandKey, BaseCommand<CommandKey[keyof CommandKey]>>([
+    [
+      'show-main-menu',
+      new ShowMainMenuCommand('Main Menu', [
+        { name: 'Seek job', value: 'seek-job' },
+        { name: 'My techstack', value: 'show-techstack' },
+        { name: 'Settings', value: 'show-settings-menu' },
+        { name: 'Exit', value: 'exit' },
+      ]),
+    ],
+    [
+      'show-settings-menu',
+      new ShowSettingsMenuCommand('Settings', [
+        { name: 'Adjust seeking sources', value: 'adjust-seeking-sources' },
         { name: 'Go to main menu', value: 'show-main-menu' },
-      ],
-      container.resolve(LocalStorageService)
-    ),
-  ],
-  [
-    'adjust-techstack',
-    new AdjustTechstackCommand(
-      'Write your preferences in format: [tech1, tech2, tech3, ...]',
-      [
-        { name: 'Show techstack', value: 'show-techstack' },
-        { name: 'Go back', value: 'go-back' },
-      ],
-      container.resolve(LocalStorageService)
-    ),
-  ],
-  [
-    'adjust-seeking-sources',
-    new AdjustSeekingSourcesCommand(
-      'Choose sources you want to seek jobs from:',
-      [
-        { name: 'SolidJobs', value: 'solid-jobs' },
-        { name: 'ProtocolIt', value: 'protocol-it' },
-        { name: 'JustJoinIt', value: 'just-join-it' },
-        { name: 'NoFluffJobs', value: 'no-fluff-jobs' },
-        // { name: 'PracujPl', value: 'pracuj-pl' },
-        // { name: 'LinkedIn', value: 'linkedin' },
-      ],
-      container.resolve(LocalStorageService)
-    ),
-  ],
-]);
+      ]),
+    ],
+    [
+      'seek-job',
+      new SeekJobCommand(
+        'Seeking for the jobs...',
+        [],
+        container.resolve(LocalStorageService),
+        container.resolve(SeekJobService)
+      ),
+    ],
+    [
+      'show-techstack',
+      new ShowTechstackCommand(
+        'What would you like to do?',
+        [
+          { name: 'Adjust stack', value: 'adjust-techstack' },
+          { name: 'Go to main menu', value: 'show-main-menu' },
+        ],
+        container.resolve(LocalStorageService)
+      ),
+    ],
+    [
+      'adjust-techstack',
+      new AdjustTechstackCommand(
+        'Write your preferences in format: [tech1, tech2, tech3, ...]',
+        [
+          { name: 'Show techstack', value: 'show-techstack' },
+          { name: 'Go back', value: 'go-back' },
+        ],
+        container.resolve(LocalStorageService)
+      ),
+    ],
+    [
+      'adjust-seeking-sources',
+      new AdjustSeekingSourcesCommand(
+        'Choose sources you want to seek jobs from:',
+        [
+          { name: 'SolidJobs', value: 'solid-jobs' },
+          { name: 'ProtocolIt', value: 'protocol-it' },
+          { name: 'JustJoinIt', value: 'just-join-it' },
+          { name: 'NoFluffJobs', value: 'no-fluff-jobs' },
+          // { name: 'PracujPl', value: 'pracuj-pl' },
+          // { name: 'LinkedIn', value: 'linkedin' },
+        ],
+        container.resolve(LocalStorageService)
+      ),
+    ],
+  ]);
+
+let commandsSet: Map<CommandKey, BaseCommand<CommandKey[keyof CommandKey]>>;
+
+export const getCommandsSet = () => {
+  if (!commandsSet) {
+    commandsSet = buildCommandsSet();
+  }
+  return commandsSet;
+};
 
 export const getCommand = (
   key: CommandKey
 ): BaseCommand<CommandKey[keyof CommandKey]> => {
-  return commandsSet.get(key)!;
+  return getCommandsSet().get(key)!;
 };

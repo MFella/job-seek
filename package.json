@@ -30,6 +30,7 @@
   "dependencies": {
     "@boringnode/encryption": "^1.0.0",
     "@inquirer/prompts": "^8.3.0",
+    "ky": "^2.0.1",
     "tsyringe": "^4.10.0"
   }
 }

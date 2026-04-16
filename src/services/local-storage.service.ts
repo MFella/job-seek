@@ -5,6 +5,11 @@ import { ConfigService } from '../config/config.service.ts';
 import { chacha20poly1305 } from '@boringnode/encryption/drivers/chacha20_poly1305';
 import { injectable } from 'tsyringe';
 
+type Preferences = {
+  seekingSources: string[];
+  techstack: string[];
+};
+
 @injectable()
 export class LocalStorageService {
   private readonly encryptionInstance;
@@ -25,9 +30,20 @@ export class LocalStorageService {
    * Encrypts and saves preferences to a file.
    * @param preferences The data to save.
    */
-  async savePreferences(preferences: string): Promise<void> {
+  async savePreferences(
+    preferenceKey: keyof Preferences,
+    preferences: string[]
+  ): Promise<void> {
     try {
-      const encryptedData = this.encryptionInstance.encrypt(preferences);
+      const existingPreferences = await this.loadPreferences();
+      const preferencesToSave = {
+        ...(existingPreferences ? existingPreferences : {}),
+        [preferenceKey]: preferences,
+      };
+      const encryptedData = this.encryptionInstance.encrypt(
+        JSON.stringify(preferencesToSave)
+      );
+
       await writeFile(this.filePath, encryptedData, 'utf-8');
     } catch (error) {
       console.error('Failed to save preferences:', error);
@@ -39,11 +55,24 @@ export class LocalStorageService {
    * Loads and decrypts preferences from a file.
    * @returns The decrypted preferences or null if the file doesn't exist.
    */
-  async loadPreferences(): Promise<string | null> {
+  async loadPreferences(): Promise<Preferences | null>;
+  async loadPreferences(
+    preferenceKey: keyof Preferences
+  ): Promise<Preferences[keyof Preferences] | null>;
+  async loadPreferences(
+    preferenceKey?: keyof Preferences
+  ): Promise<Preferences | Preferences[keyof Preferences] | null> {
     try {
       const encryptedData = await readFile(this.filePath, 'utf-8');
-      console.log('encData', encryptedData);
-      return this.encryptionInstance.decrypt(encryptedData) as string;
+      const decryptedData =
+        this.encryptionInstance.decrypt<string>(encryptedData);
+      if (!decryptedData) {
+        return null;
+      }
+      const parsedDecryptedData = JSON.parse(decryptedData) as Preferences;
+      return preferenceKey && preferenceKey in parsedDecryptedData
+        ? parsedDecryptedData[preferenceKey]
+        : parsedDecryptedData;
     } catch (error: any) {
       if (error.code === 'ENOENT') {
         return null;
