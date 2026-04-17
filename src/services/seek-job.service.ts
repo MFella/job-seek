@@ -1,4 +1,4 @@
-import { inject, injectable } from 'tsyringe';
+import { container, inject, injectable } from 'tsyringe';
 import { RestDataService } from '../rest/rest-data.service.ts';
 import { SeekJobResolver } from '../resolvers/seek-job.resolver.ts';
 import { SolidJobsResolver } from '../resolvers/seek-job/solid-jobs.resolver.ts';
@@ -36,21 +36,27 @@ export class SeekJobService {
       SeekJobService.ALLOWED_SEEK_SOURCES.includes(seekSource)
     );
 
-    for (const seekSource of seekSources) {
-      const seekJobResolver = this.getSeekJobResolver(seekSource);
-    }
+    const jobOffers = (
+      await Promise.all(
+        seekSources.map((seekSource) =>
+          this.getSeekJobResolver(seekSource).resolve(jobSeekSettings)
+        )
+      )
+    ).flat();
+
+    console.log(jobOffers);
   }
 
   private getSeekJobResolver(seekSource: string): SeekJobResolver {
     switch (seekSource) {
       case 'solid-jobs':
-        return new SolidJobsResolver();
+        return container.resolve(SolidJobsResolver);
       case 'protocol-it':
-        return new ProtocolItResolver();
+        return container.resolve(ProtocolItResolver);
       case 'just-join-it':
-        return new JustJoinItResolver();
+        return container.resolve(JustJoinItResolver);
       case 'no-fluff-jobs':
-        return new NoFluffJobsResolver();
+        return container.resolve(NoFluffJobsResolver);
       default:
         throw new Error(`Unknown seek source: ${seekSource}`);
     }
