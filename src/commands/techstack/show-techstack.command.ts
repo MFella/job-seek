@@ -14,10 +14,8 @@ export class ShowTechstackCommand<T extends string> extends BaseCommand<T> {
   }
 
   async execute(): Promise<T> {
-    const currentPreferences = JSON.parse(
-      (await this.localStorageService.loadPreferences()) || '{}'
-    );
-    if (Object.keys(currentPreferences).length === 0) {
+    const currentPreferences = await this.localStorageService.loadPreferences();
+    if (!currentPreferences) {
       console.log('You have no techstack set.');
     } else if ('techstack' in currentPreferences) {
       console.log(

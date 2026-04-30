@@ -17,35 +17,23 @@ export class JustJoinItResolver extends SeekJobResolver {
   }
 
   async resolve(seekJobRequest: SeekJobRequest): Promise<JobOfferRaw[]> {
-    if (!this.authSession) {
-      await this.webScrapperService.refreshCloudflareToken({
+    const jobOffers =
+      await this.webScrapperService.resolveRequest<'justjoinit'>({
         url: this.getBaseUrl(seekJobRequest),
-        onPageLoaded: (event) => {
-          this.authSession = { cookies: event.cookies };
-        },
+        source: 'justjoinit',
       });
-    }
 
-    try {
-      const response = await this.restDataService.get(
-        `${this.getBaseUrl(seekJobRequest)}`,
-        {
-          headers: {
-            Cookie: this.authSession?.cookies
-              .map((cookie) => `${cookie.name}=${cookie.value}`)
-              .join('; '),
-          },
-        }
-      );
-      console.log('hehe', response);
-    } catch (error: unknown) {
-      console.log('error Occurred', error);
-      return [];
-    }
-    return [];
+    return jobOffers.data.map((jobOffer) => ({
+      title: jobOffer.title,
+      company: jobOffer.companyName,
+      url: jobOffer.slug,
+      postedAt: jobOffer.publishedAt,
+      id: jobOffer.guid,
+    }));
   }
 
   protected getBaseUrl(seekJobRequest: SeekJobRequest): string {
+    // return 'https://justjoin.it';
     return `https://justjoin.it/api/candidate-api/offers?from=0&itemsCount=300&currency=pln&orderBy=descending&sortBy=publishedAt&keywords=${seekJobRequest.techstack.join(',')}`;
   }
 }

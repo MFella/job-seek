@@ -47,7 +47,6 @@ const buildCommandsSet = () =>
       'seek-job',
       new SeekJobCommand(
         'Seeking for the jobs...',
-        [],
         container.resolve(LocalStorageService),
         container.resolve(SeekJobService)
       ),

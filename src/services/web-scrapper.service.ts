@@ -1,51 +1,52 @@
 import { injectable } from 'tsyringe';
-import { Cookie, PlaywrightCrawler, PlaywrightRequestHandler } from 'crawlee';
-
-type PageLoadedEvent = {
-  cookies: Cookie[];
-};
+import { spawn } from 'child_process';
+import { JustJoinItJobApiResponse } from '../resolvers/just-join-it.ts';
+import { JobBoard, GetJobBoardJobsApiResponse } from '../resolvers/seek-job.js';
 
 export type AuthSession = {
   cookies: Cookie[];
 };
 
+export type Cookie = {
+  name: string;
+  value: string;
+};
+
 type CrawlerConfig = {
   url: string;
-  onPageLoaded: (event: PageLoadedEvent) => void;
+  source: JobBoard | null;
 };
 
 @injectable()
 export class WebScrapperService {
-  constructor() {}
-
   private crawlerConfig: CrawlerConfig = {
     url: '',
-    onPageLoaded: () => {},
+    source: null,
   };
 
-  private readonly requestHandler: PlaywrightRequestHandler = async ({
-    page,
-  }) => {
-    // Wchodzimy na stronę główną
-    await page.goto(this.crawlerConfig.url);
-
-    // Czekamy na załadowanie kluczowego elementu (dowód przejścia CF)
-    await page.waitForSelector('header', { timeout: 20000 });
-
-    // Wyciągamy ciastka i User-Agent
-    const cookies = await page.context().cookies();
-
-    this.crawlerConfig.onPageLoaded({ cookies });
-  };
-
-  private readonly crawler = new PlaywrightCrawler({
-    browserPoolOptions: { useFingerprints: true }, // To jest klucz do sukcesu Crawlee
-    maxRequestsPerCrawl: 1,
-    requestHandler: this.requestHandler,
-  });
-
-  async refreshCloudflareToken(config: CrawlerConfig): Promise<void> {
+  async resolveRequest<T extends JobBoard>(
+    config: CrawlerConfig
+  ): Promise<GetJobBoardJobsApiResponse<T>> {
     this.crawlerConfig = config;
-    await this.crawler.run([config.url]);
+    const response = spawn('python3', [
+      './scripts/nodriver_scrapper.py',
+      this.crawlerConfig.url,
+    ]);
+
+    return new Promise((resolve, reject) => {
+      response.stdout.setEncoding('utf8');
+      response.stdout.on('data', (data: string) => {
+        try {
+          const parsedData = JSON.parse(data) as GetJobBoardJobsApiResponse<T>;
+          resolve(parsedData);
+        } catch (error: unknown) {
+          console.error(
+            `Cannot retrieve job data from: ${this.crawlerConfig.source}`,
+            error
+          );
+          reject(error);
+        }
+      });
+    });
   }
 }

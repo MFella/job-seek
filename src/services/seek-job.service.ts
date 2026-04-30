@@ -5,6 +5,7 @@ import { SolidJobsResolver } from '../resolvers/seek-job/solid-jobs.resolver.ts'
 import { ProtocolItResolver } from '../resolvers/seek-job/protocol-it.resolver.ts';
 import { JustJoinItResolver } from '../resolvers/seek-job/just-join-it.resolver.ts';
 import { NoFluffJobsResolver } from '../resolvers/seek-job/no-fluff-jobs.resolver.ts';
+import { JobOfferRaw } from '../resolvers/seek-job.ts';
 
 export type JobSeekSettings = {
   seekSources: string[];
@@ -31,7 +32,11 @@ export class SeekJobService {
     @inject(RestDataService) private readonly restDataService: RestDataService
   ) {}
 
-  async seekJobs(jobSeekSettings: JobSeekSettings): Promise<void> {
+  async seekJobs(
+    jobSeekSettings: JobSeekSettings
+  ): Promise<
+    Pick<JobOfferRaw, 'title' | 'company' | 'url' | 'postedAt' | 'id'>[]
+  > {
     const seekSources = jobSeekSettings.seekSources.filter((seekSource) =>
       SeekJobService.ALLOWED_SEEK_SOURCES.includes(seekSource)
     );
@@ -44,7 +49,7 @@ export class SeekJobService {
       )
     ).flat();
 
-    console.log(jobOffers);
+    return jobOffers;
   }
 
   private getSeekJobResolver(seekSource: string): SeekJobResolver {
