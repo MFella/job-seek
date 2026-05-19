@@ -1,37 +1,50 @@
+import { container } from 'tsyringe';
 import { ConfigService } from '../config/config.service.ts';
-import { getCommand } from '../questions/questions.ts';
+import {
+  CommandKey,
+  getCommand,
+  getCommandsSet,
+} from '../questions/questions.ts';
+import { Stack } from '../shared/data-structures/stack.ts';
+import { RestDataService } from '../rest/rest-data.service.ts';
 
 export class AppManager {
-  private programRunning = true;
-  constructor(private readonly configService: ConfigService) {}
+  private commandStack = new Stack([{ value: getCommand('show-main-menu') }]);
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly restDataService: RestDataService
+  ) {}
 
-  private static loadDependencies() {}
+  private async loadDependencies() {}
 
   async start() {
-    AppManager.loadDependencies();
-    while (this.programRunning) {
-      const showMenuCommand = getCommand('show-main-menu');
-      const result = await showMenuCommand.execute();
+    await this.loadDependencies();
+    while (!this.commandStack.isEmpty()) {
+      const nextCommand = this.commandStack.pop()?.value;
 
-      switch (result) {
-        case 'exit':
-          this.programRunning = false;
-          break;
-        case 'seek-job':
-          const seekJobCommand = getCommand('seek-job');
-          await seekJobCommand.execute();
-          break;
-        case 'show-techstack':
-          const showTechstackCommand = getCommand('show-techstack');
-          await showTechstackCommand.execute();
-          break;
-        case 'show-settings-menu':
-          const showSettingsMenuCommand = getCommand('show-settings-menu');
-          await showSettingsMenuCommand.execute();
-          break;
+      if (!nextCommand) {
+        console.log('Skipping empty command...');
+        continue;
       }
+
+      const result = await nextCommand.execute();
+
+      result.forEach(({ commandKey }) => {
+        if (commandKey === 'exit') {
+          this.commandStack.clear();
+          return;
+        }
+        const resultCommand = getCommand(commandKey);
+
+        if (resultCommand) {
+          this.commandStack.push({ value: resultCommand });
+        }
+      });
     }
   }
 }
 
-export default new AppManager(new ConfigService());
+export default new AppManager(
+  new ConfigService(),
+  container.resolve(RestDataService)
+);

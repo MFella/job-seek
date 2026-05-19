@@ -1,16 +1,28 @@
 import { JustJoinItJobApiResponse } from './just-join-it.ts';
 
-export type JobBoard = 'justjoinit' | 'solid' | 'protocol' | 'nofluff';
+type Sorting = 'latest' | 'highest-salary' | 'lowest-salary';
+type WorkingMode = 'remote' | 'hybrid' | 'office';
+type ExperienceLevel = 'junior' | 'mid' | 'senior';
 
-export type JobBoardApiResponseMap = {
-  justjoinit: JustJoinItJobApiResponse;
-  solid: Record<string, unknown>;
-  protocol: Record<string, unknown>;
-  nofluff: Record<string, unknown>;
+export type JobBoardJobsApiResponseMap = {
+  'just-join-it': JustJoinItJobApiResponse;
+  'solid-jobs': Record<string, unknown>;
+  'protocol-it': Record<string, unknown>;
+  'no-fluff-jobs': Record<string, unknown>;
 };
 
-export type GetJobBoardJobsApiResponse<T extends JobBoard> =
-  JobBoardApiResponseMap[T];
+export type JobBoardSingleJobApiResponseMap = {
+  'just-join-it': JustJoinItJobApiResponse['data'][0];
+  'solid-jobs': Record<string, unknown>;
+  'protocol-it': Record<string, unknown>;
+  'no-fluff-jobs': Record<string, unknown>;
+};
+
+export type GetJobBoardSingleJobApiResponse<T extends SeekSources> =
+  JobBoardSingleJobApiResponseMap[T];
+
+export type GetJobBoardJobsApiResponse<T extends SeekSources> =
+  JobBoardJobsApiResponseMap[T];
 
 export type JobOfferRaw = {
   id: string;
@@ -25,11 +37,48 @@ export type JobOfferRaw = {
   url: string;
   description?: string;
   postedAt?: string;
+  slug?: string;
 };
 
-export type SeekJobRequest = {
+export type SeekJobRequest<T extends SeekSources> = Omit<
+  SeekJobSettings,
+  'seekSources'
+> & {
+  filters: (typeof seekJobFilters)[T];
+};
+
+export type SeekSources =
+  | 'just-join-it'
+  | 'solid-jobs'
+  | 'protocol-it'
+  | 'no-fluff-jobs';
+
+export type SeekSource = {
+  name: SeekSources;
+  mode: 'one' | 'many';
+};
+
+export type SeekJobSettings = {
+  seekSources: SeekSource[];
   techstack: string[];
   sorting?: Sorting;
   workingMode?: WorkingMode;
   experienceLevel?: ExperienceLevel;
+};
+
+export function toSeekJobRequest<T extends SeekSources>(
+  seekJobSettings: SeekJobSettings,
+  seekSource: T
+): SeekJobRequest<T> {
+  return {
+    ...seekJobSettings,
+    filters: seekJobFilters[seekSource],
+  };
+}
+
+const seekJobFilters = {
+  'just-join-it': {},
+  'solid-jobs': {},
+  'protocol-it': {},
+  'no-fluff-jobs': {},
 };

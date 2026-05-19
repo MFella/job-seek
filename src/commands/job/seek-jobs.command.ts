@@ -1,9 +1,9 @@
-import { BaseCommand } from '../base-command.ts';
+import { BaseCommand, NextCommandToExecute } from '../base-command.ts';
 import { select } from '@inquirer/prompts';
 import { LocalStorageService } from '../../services/local-storage.service.ts';
 import { SeekJobService } from '../../services/seek-job.service.ts';
 
-export class SeekJobCommand extends BaseCommand<string> {
+export class SeekJobsCommand extends BaseCommand {
   constructor(
     protected readonly message: string,
     private readonly localStorageService: LocalStorageService,
@@ -12,14 +12,13 @@ export class SeekJobCommand extends BaseCommand<string> {
     super(message);
   }
 
-  async execute(): Promise<string> {
-    // TODO: load job seek settings
+  async execute(): Promise<NextCommandToExecute[]> {
     const jobSeekSettings = await this.localStorageService.loadPreferences();
 
     if (!jobSeekSettings || Object.keys(jobSeekSettings).length === 0) {
       // TODO: Use logger instead of console.log
       console.log('No job seek settings found. Please adjust settings.');
-      return '';
+      return [{ commandKey: 'show-main-menu' }];
     } else if (
       !jobSeekSettings.techstack ||
       jobSeekSettings.techstack?.length === 0 ||
@@ -30,7 +29,7 @@ export class SeekJobCommand extends BaseCommand<string> {
       console.log(
         'No techstack or seeking sources found. Please adjust settings.'
       );
-      return '';
+      return [{ commandKey: 'show-main-menu' }];
     }
     // TODO: Use logger instead of console.log
     console.log('Seeking jobs with config: ', jobSeekSettings);
@@ -42,13 +41,20 @@ export class SeekJobCommand extends BaseCommand<string> {
       techstack: jobSeekSettings.techstack,
     });
 
-    return await select({
+    const selectedJob = await select({
       choices: seekedJobs.map((jobOffer) => ({
         value: jobOffer.id,
+        slug: jobOffer.slug,
         name: `${jobOffer.title} | ${jobOffer.company}`,
       })),
       pageSize: 5,
       message: this.message,
     });
+
+    const selectedJobOffer = seekedJobs.find(
+      (jobOffer) => jobOffer.id === selectedJob
+    );
+    console.log('Slug: ', selectedJobOffer?.slug);
+    return [{ commandKey: 'show-main-menu' }];
   }
 }

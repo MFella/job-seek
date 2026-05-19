@@ -5,19 +5,12 @@ import { SolidJobsResolver } from '../resolvers/seek-job/solid-jobs.resolver.ts'
 import { ProtocolItResolver } from '../resolvers/seek-job/protocol-it.resolver.ts';
 import { JustJoinItResolver } from '../resolvers/seek-job/just-join-it.resolver.ts';
 import { NoFluffJobsResolver } from '../resolvers/seek-job/no-fluff-jobs.resolver.ts';
-import { JobOfferRaw } from '../resolvers/seek-job.ts';
-
-export type JobSeekSettings = {
-  seekSources: string[];
-  techstack: string[];
-  sorting?: Sorting;
-  workingMode?: WorkingMode;
-  experienceLevel?: ExperienceLevel;
-};
-
-type Sorting = 'latest' | 'highest-salary' | 'lowest-salary';
-type WorkingMode = 'remote' | 'hybrid' | 'office';
-type ExperienceLevel = 'junior' | 'mid' | 'senior';
+import {
+  JobOfferRaw,
+  SeekJobSettings,
+  SeekSources,
+  toSeekJobRequest,
+} from '../resolvers/seek-job.ts';
 
 @injectable()
 export class SeekJobService {
@@ -33,18 +26,27 @@ export class SeekJobService {
   ) {}
 
   async seekJobs(
-    jobSeekSettings: JobSeekSettings
+    jobSeekSettings: SeekJobSettings
   ): Promise<
-    Pick<JobOfferRaw, 'title' | 'company' | 'url' | 'postedAt' | 'id'>[]
+    Pick<
+      JobOfferRaw,
+      'title' | 'company' | 'url' | 'postedAt' | 'id' | 'slug'
+    >[]
   > {
-    const seekSources = jobSeekSettings.seekSources.filter((seekSource) =>
-      SeekJobService.ALLOWED_SEEK_SOURCES.includes(seekSource)
-    );
+    const seekSourceNames = jobSeekSettings.seekSources
+      .filter(
+        (seekSource) =>
+          SeekJobService.ALLOWED_SEEK_SOURCES.includes(seekSource.name) &&
+          seekSource.mode === 'many'
+      )
+      .map(({ name }) => name);
 
     const jobOffers = (
       await Promise.all(
-        seekSources.map((seekSource) =>
-          this.getSeekJobResolver(seekSource).resolve(jobSeekSettings)
+        seekSourceNames.map((seekSourceName) =>
+          this.getSeekJobResolver(seekSourceName).resolve(
+            toSeekJobRequest(jobSeekSettings, seekSourceName)
+          )
         )
       )
     ).flat();
@@ -52,7 +54,7 @@ export class SeekJobService {
     return jobOffers;
   }
 
-  private getSeekJobResolver(seekSource: string): SeekJobResolver {
+  private getSeekJobResolver(seekSource: string): SeekJobResolver<SeekSources> {
     switch (seekSource) {
       case 'solid-jobs':
         return container.resolve(SolidJobsResolver);

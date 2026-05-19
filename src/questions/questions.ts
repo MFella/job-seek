@@ -1,6 +1,6 @@
 import { container } from 'tsyringe';
 import { BaseCommand } from '../commands/base-command.ts';
-import { SeekJobCommand } from '../commands/job/seek-job.command.ts';
+import { SeekJobsCommand } from '../commands/job/seek-jobs.command.ts';
 import { ShowMainMenuCommand } from '../commands/show-main-menu/show-menu.command.ts';
 import { AdjustTechstackCommand } from '../commands/techstack/adjust-techstack.command.ts';
 import { ShowTechstackCommand } from '../commands/techstack/show-techstack.command.ts';
@@ -13,7 +13,7 @@ const commandKeysValues = {
   'show-main-menu': ['exit', 'settings'] as const,
   'show-settings-menu': ['exit', 'settings'] as const,
   'show-techstack': ['adjust-techstack', 'show-main-menu'] as const,
-  'seek-job': ['show-main-menu'] as const,
+  'seek-jobs': ['show-main-menu'] as const,
   'show-filters-sorting': [
     'adjust-filters',
     'adjust-sorting',
@@ -21,16 +21,17 @@ const commandKeysValues = {
   ] as const,
   'adjust-techstack': [] as const,
   'adjust-seeking-sources': [] as const,
+  exit: [] as const,
 };
 
-type CommandKey = keyof typeof commandKeysValues;
+export type CommandKey = keyof typeof commandKeysValues;
 
 const buildCommandsSet = () =>
-  new Map<CommandKey, BaseCommand<CommandKey[keyof CommandKey]>>([
+  new Map<CommandKey, BaseCommand>([
     [
       'show-main-menu',
       new ShowMainMenuCommand('Main Menu', [
-        { name: 'Seek job', value: 'seek-job' },
+        { name: 'Seek job', value: 'seek-jobs' },
         { name: 'My techstack', value: 'show-techstack' },
         { name: 'Settings', value: 'show-settings-menu' },
         { name: 'Exit', value: 'exit' },
@@ -44,8 +45,8 @@ const buildCommandsSet = () =>
       ]),
     ],
     [
-      'seek-job',
-      new SeekJobCommand(
+      'seek-jobs',
+      new SeekJobsCommand(
         'Seeking for the jobs...',
         container.resolve(LocalStorageService),
         container.resolve(SeekJobService)
@@ -90,7 +91,7 @@ const buildCommandsSet = () =>
     ],
   ]);
 
-let commandsSet: Map<CommandKey, BaseCommand<CommandKey[keyof CommandKey]>>;
+let commandsSet: Map<CommandKey, BaseCommand>;
 
 export const getCommandsSet = () => {
   if (!commandsSet) {
@@ -99,8 +100,6 @@ export const getCommandsSet = () => {
   return commandsSet;
 };
 
-export const getCommand = (
-  key: CommandKey
-): BaseCommand<CommandKey[keyof CommandKey]> => {
+export const getCommand = (key: CommandKey): BaseCommand => {
   return getCommandsSet().get(key)!;
 };

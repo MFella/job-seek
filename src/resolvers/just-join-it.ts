@@ -32,6 +32,28 @@ export interface JustJoinItJobOffer {
   expiredAt: Date;
 }
 
+export interface JustJoinItDetailedJobOffer extends JustJoinItJobOffer {
+  companyUrl: string;
+  // HTML description of the job offer
+  body: string;
+  locationId: string;
+  street: string;
+  countryCode: string;
+  latitude: number;
+  longitude: number;
+  companySize: string;
+  informationClause: string;
+  futureConsent: string;
+  customConsent: string;
+  companyLogoUrl: string;
+  applyUrl: string;
+  companyProfileSlug: null;
+  companyProfileCoverPhotoUrl: null;
+  companyProfileShortDescription: null;
+  videoUrl: null;
+  bannerUrl: null;
+}
+
 export enum ApplyMethod {
   External = 'external',
   Form = 'form',

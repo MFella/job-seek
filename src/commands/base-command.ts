@@ -1,4 +1,11 @@
-export abstract class BaseCommand<T = string> {
+import { CommandKey } from '../questions/questions.ts';
+
+export type NextCommandToExecute = {
+  commandKey: CommandKey;
+  config?: any;
+};
+
+export abstract class BaseCommand {
   constructor(protected readonly message: string) {}
-  abstract execute(): Promise<T | T[]>;
+  abstract execute(): Promise<NextCommandToExecute[]>;
 }

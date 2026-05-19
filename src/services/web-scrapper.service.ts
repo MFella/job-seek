@@ -1,7 +1,6 @@
 import { injectable } from 'tsyringe';
 import { spawn } from 'child_process';
-import { JustJoinItJobApiResponse } from '../resolvers/just-join-it.ts';
-import { JobBoard, GetJobBoardJobsApiResponse } from '../resolvers/seek-job.js';
+import { JobBoard } from '../resolvers/seek-job.js';
 
 export type AuthSession = {
   cookies: Cookie[];
@@ -24,21 +23,19 @@ export class WebScrapperService {
     source: null,
   };
 
-  async resolveRequest<T extends JobBoard>(
-    config: CrawlerConfig
-  ): Promise<GetJobBoardJobsApiResponse<T>> {
+  async getAuthSession(config: CrawlerConfig): Promise<AuthSession> {
     this.crawlerConfig = config;
-    const response = spawn('python3', [
+    const scrapperProcess = spawn('python3', [
       './scripts/nodriver_scrapper.py',
       this.crawlerConfig.url,
     ]);
 
     return new Promise((resolve, reject) => {
-      response.stdout.setEncoding('utf8');
-      response.stdout.on('data', (data: string) => {
+      scrapperProcess.stdout.setEncoding('utf8');
+      scrapperProcess.stdout.on('data', (data: string) => {
         try {
-          const parsedData = JSON.parse(data) as GetJobBoardJobsApiResponse<T>;
-          resolve(parsedData);
+          const parsedData = JSON.parse(data) as Cookie[];
+          resolve({ cookies: parsedData });
         } catch (error: unknown) {
           console.error(
             `Cannot retrieve job data from: ${this.crawlerConfig.source}`,
@@ -46,6 +43,9 @@ export class WebScrapperService {
           );
           reject(error);
         }
+
+        // We're interested in the first chunk of data
+        scrapperProcess.stdout.destroy();
       });
     });
   }

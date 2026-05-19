@@ -1,34 +1,22 @@
-import { BaseCommand } from '../base-command.ts';
+import { BaseCommand, NextCommandToExecute } from '../base-command.ts';
 import type { SelectChoiceItem } from '../../common/inquirer.ts';
 import { select } from '@inquirer/prompts';
-import { getCommand } from '../../questions/questions.ts';
+import { CommandKey } from '../../questions/questions.ts';
 
-export class ShowSettingsMenuCommand<T extends string> extends BaseCommand<T> {
+export class ShowSettingsMenuCommand extends BaseCommand {
   constructor(
     protected readonly message: string,
-    protected readonly choices: SelectChoiceItem<T>[]
+    protected readonly choices: SelectChoiceItem<CommandKey>[]
   ) {
     super(message);
   }
 
-  async execute(): Promise<T> {
+  async execute(): Promise<NextCommandToExecute[]> {
     const result = await select({
       message: this.message,
       choices: this.choices,
     });
 
-    switch (result) {
-      case 'adjust-seeking-sources': {
-        const adjustSeekingSourcesCommand = getCommand(
-          'adjust-seeking-sources'
-        );
-        await adjustSeekingSourcesCommand.execute();
-        break;
-      }
-      case 'go-to-main-menu': {
-        break;
-      }
-    }
-    return result;
+    return [{ commandKey: result }];
   }
 }

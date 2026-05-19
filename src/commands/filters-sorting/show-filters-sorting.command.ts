@@ -1,4 +1,4 @@
-import { BaseCommand } from '../base-command.ts';
+import { BaseCommand, NextCommandToExecute } from '../base-command.ts';
 import type { SelectChoiceItem } from '../../common/inquirer.js';
 import { select } from '@inquirer/prompts';
 
@@ -12,10 +12,12 @@ export class ShowFiltersSortingCommand<
     super(message);
   }
 
-  async execute(): Promise<T> {
-    return await select({
+  async execute(): Promise<NextCommandToExecute<T>[]> {
+    const selectedCommandKey = await select({
       choices: this.choices,
       message: this.message,
     });
+
+    return [{ commandKey: selectedCommandKey }];
   }
 }

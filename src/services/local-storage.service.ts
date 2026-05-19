@@ -4,9 +4,10 @@ import { join } from 'node:path';
 import { ConfigService } from '../config/config.service.ts';
 import { chacha20poly1305 } from '@boringnode/encryption/drivers/chacha20_poly1305';
 import { injectable } from 'tsyringe';
+import { SeekSource } from './seek-job.service.ts';
 
 type Preferences = {
-  seekingSources: string[];
+  seekingSources: SeekSource[];
   techstack: string[];
 };
 
@@ -32,7 +33,7 @@ export class LocalStorageService {
    */
   async savePreferences(
     preferenceKey: keyof Preferences,
-    preferences: string[]
+    preferences: Preferences[typeof preferenceKey]
   ): Promise<void> {
     try {
       const existingPreferences = await this.loadPreferences();
@@ -55,13 +56,13 @@ export class LocalStorageService {
    * Loads and decrypts preferences from a file.
    * @returns The decrypted preferences or null if the file doesn't exist.
    */
-  async loadPreferences(): Promise<Preferences | null>;
-  async loadPreferences(
-    preferenceKey: keyof Preferences
-  ): Promise<Preferences[keyof Preferences] | null>;
-  async loadPreferences(
-    preferenceKey?: keyof Preferences
-  ): Promise<Preferences | Preferences[keyof Preferences] | null> {
+  async loadPreferences(): Promise<Preferences>;
+  async loadPreferences<T extends keyof Preferences>(
+    preferenceKey: T
+  ): Promise<Preferences[T]>;
+  async loadPreferences<T extends keyof Preferences>(
+    preferenceKey?: T
+  ): Promise<Preferences | Preferences[T] | null> {
     try {
       const encryptedData = await readFile(this.filePath, 'utf-8');
       const decryptedData =
@@ -70,9 +71,12 @@ export class LocalStorageService {
         return null;
       }
       const parsedDecryptedData = JSON.parse(decryptedData) as Preferences;
-      return preferenceKey && preferenceKey in parsedDecryptedData
-        ? parsedDecryptedData[preferenceKey]
-        : parsedDecryptedData;
+
+      if (!preferenceKey) {
+        return parsedDecryptedData;
+      }
+
+      return parsedDecryptedData[preferenceKey];
     } catch (error: any) {
       if (error.code === 'ENOENT') {
         return null;

@@ -1,9 +1,9 @@
-import { BaseCommand } from '../base-command.ts';
+import { BaseCommand, NextCommandToExecute } from '../base-command.ts';
 import type { SelectChoiceItem } from '../../common/inquirer.js';
 import { input } from '@inquirer/prompts';
 import { LocalStorageService } from '../../services/local-storage.service.ts';
 
-export class AdjustTechstackCommand extends BaseCommand<string> {
+export class AdjustTechstackCommand extends BaseCommand {
   constructor(
     protected readonly message: string,
     protected readonly choices: SelectChoiceItem<string>[],
@@ -12,7 +12,7 @@ export class AdjustTechstackCommand extends BaseCommand<string> {
     super(message);
   }
 
-  async execute(): Promise<string> {
+  async execute(): Promise<NextCommandToExecute[]> {
     const result = await input({
       message: this.message,
       validate: (value: string) => {
@@ -27,7 +27,7 @@ export class AdjustTechstackCommand extends BaseCommand<string> {
       'techstack',
       this.parseTechstack(result)
     );
-    return result;
+    return [{ commandKey: 'show-techstack' }];
   }
 
   private parseTechstack(techstack: string): string[] {
