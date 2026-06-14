@@ -6,10 +6,12 @@ import { ProtocolItResolver } from '../resolvers/seek-job/protocol-it.resolver.t
 import { JustJoinItResolver } from '../resolvers/seek-job/just-join-it.resolver.ts';
 import { NoFluffJobsResolver } from '../resolvers/seek-job/no-fluff-jobs.resolver.ts';
 import {
+  DetailedJobOfferRaw,
   JobOfferRaw,
   SeekJobSettings,
   SeekSources,
   toSeekJobRequest,
+  toSeekJobsRequest,
 } from '../resolvers/seek-job.ts';
 
 @injectable()
@@ -23,15 +25,15 @@ export class SeekJobService {
 
   constructor(
     @inject(RestDataService) private readonly restDataService: RestDataService
-  ) {}
+  ) { }
 
   async seekJobs(
     jobSeekSettings: SeekJobSettings
   ): Promise<
-    Pick<
-      JobOfferRaw,
+    (Pick<
+      JobOfferRaw<SeekSources>,
       'title' | 'company' | 'url' | 'postedAt' | 'id' | 'slug'
-    >[]
+    > & Record<'seekSource', SeekSources>)[]
   > {
     const seekSourceNames = jobSeekSettings.seekSources
       .filter(
@@ -44,14 +46,22 @@ export class SeekJobService {
     const jobOffers = (
       await Promise.all(
         seekSourceNames.map((seekSourceName) =>
-          this.getSeekJobResolver(seekSourceName).resolve(
-            toSeekJobRequest(jobSeekSettings, seekSourceName)
+          this.getSeekJobResolver(seekSourceName).resolveMany(
+            toSeekJobsRequest(jobSeekSettings, seekSourceName)
           )
         )
       )
-    ).flat();
+    ).flat()
 
     return jobOffers;
+  }
+
+  async seekJob(jobSeekSettings: SeekJobSettings<"one">): Promise<DetailedJobOfferRaw<typeof jobSeekSettings.seekSource>> {
+    const resolver = this.getSeekJobResolver(jobSeekSettings.seekSource);
+
+    return await resolver.resolveOne(
+      toSeekJobRequest(jobSeekSettings)
+    );
   }
 
   private getSeekJobResolver(seekSource: string): SeekJobResolver<SeekSources> {

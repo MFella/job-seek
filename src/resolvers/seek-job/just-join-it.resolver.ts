@@ -3,20 +3,27 @@ import {
   SeekJobResolver,
 } from '../seek-job.resolver.ts';
 import type {
+  DetailedJobOfferRaw,
   GetJobBoardJobsApiResponse,
+  GetJobBoardSingleJobApiResponse,
   JobOfferRaw,
   SeekJobRequest,
+  SeekJobsRequest,
 } from '../seek-job.d.ts';
-import { inject, injectable } from 'tsyringe';
+import { inject, singleton } from 'tsyringe';
 import type { AuthSession } from '../../services/web-scrapper.service.ts';
 import { WebScrapperService } from '../../services/web-scrapper.service.ts';
 import { RestDataService } from '../../rest/rest-data.service.ts';
 
-type Request = SeekJobRequest<'justjoinit'>;
+type Request = SeekJobsRequest<'just-join-it'>;
+type KyHeadersInit = NonNullable<RequestInit['headers']> | Record<string, string | undefined>;
 
-@injectable()
-export class JustJoinItResolver extends SeekJobResolver<'justjoinit'> {
+@singleton()
+export class JustJoinItResolver extends SeekJobResolver<'just-join-it'> {
+  private static readonly JOB_OFFERS_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+
   private authSession: AuthSession | null = null;
+  private cachedResolvedJobsMap: Map<string, { savedDate: Date; offers: JobOfferRaw<'just-join-it'>[] }> = new Map();
 
   constructor(
     @inject(RestDataService) restDataService: RestDataService,
@@ -25,37 +32,55 @@ export class JustJoinItResolver extends SeekJobResolver<'justjoinit'> {
     super(restDataService, webScrapperService);
   }
 
-  async resolve(seekJobRequest: Request): Promise<JobOfferRaw[]> {
-    const authSession = await this.webScrapperService.getAuthSession({
-      url: this.getBaseUrl(),
-      source: 'justjoinit',
-    });
-    console.log('authSession ', authSession);
-    this.authSession = authSession;
+  async resolveMany(seekJobsRequest: Request): Promise<JobOfferRaw<'just-join-it'>[]> {
+    const cacheKey = btoa(JSON.stringify(seekJobsRequest));
+    const cachedData = this.cachedResolvedJobsMap.get(cacheKey);
+
+    if (cachedData) {
+      const timeDiff = new Date().getTime() - cachedData.savedDate.getTime();
+      if (timeDiff < JustJoinItResolver.JOB_OFFERS_CACHE_TTL_MS) {
+        console.log('Using cached job offers');
+        return cachedData.offers;
+      }
+    }
+
+    if (!this.authSession) {
+      this.authSession = await this.retryAuthSession();
+    }
 
     const jobOffers = await this.restDataService.get<
-      GetJobBoardJobsApiResponse<'justjoinit'>
-    >(this.getSeekJobsUrl(seekJobRequest), {
-      headers: {
-        accept:
-          'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-        Cookie: this.authSession.cookies
-          .map((cookie) => `${cookie.name}=${cookie.value}`)
-          .join('; '),
-        'user-agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36',
-      },
+      GetJobBoardJobsApiResponse<'just-join-it'>
+    >(this.getSeekJobsUrl(seekJobsRequest), {
+      headers: this.getKyGetHeaders()
     });
 
-    console.log('WE have got this ', jobOffers);
-    return jobOffers.data.map((jobOffer) => ({
+    console.log("Fetched list length: ", jobOffers.data.length);
+    const mappedJobOffers = jobOffers.data.map((jobOffer) => ({
       title: jobOffer.title,
       company: jobOffer.companyName,
       url: jobOffer.slug,
       postedAt: jobOffer.publishedAt,
       id: jobOffer.guid,
       slug: jobOffer.slug,
-    }));
+      seekSource: 'just-join-it'
+    })) satisfies JobOfferRaw<'just-join-it'>[];
+
+    this.cachedResolvedJobsMap.set(cacheKey, { savedDate: new Date(), offers: mappedJobOffers });
+    return mappedJobOffers;
+  }
+
+  async resolveOne(seekJobRequest: SeekJobRequest<'just-join-it'>): Promise<DetailedJobOfferRaw<'just-join-it'>> {
+    if (!this.authSession) {
+      this.authSession = await this.retryAuthSession();
+    }
+
+    const jobOffer = await this.restDataService.get<
+      GetJobBoardSingleJobApiResponse<'just-join-it'>
+    >(this.getSeekJobUrl(seekJobRequest), {
+      headers: this.getKyGetHeaders()
+    });
+
+    return { ...jobOffer, company: jobOffer.companyName, url: jobOffer.applyUrl, seekSource: 'just-join-it', description: jobOffer.body };
   }
 
   protected getBaseUrl(): string {
@@ -72,7 +97,30 @@ export class JustJoinItResolver extends SeekJobResolver<'justjoinit'> {
     return `api/candidate-api/offers/${config?.slug ?? ''}`;
   }
 
-  private getSeekJobsUrl(seekJobRequest: Request): string {
-    return `${this.getBaseUrl()}${this.getSeekJobsSuffix(seekJobRequest)}`;
+  private getSeekJobsUrl(seekJobsRequest: Request): string {
+    return `${this.getBaseUrl()}${this.getSeekJobsSuffix(seekJobsRequest)}`;
+  }
+
+  private getSeekJobUrl(seekJobRequest: SeekJobRequest<'just-join-it'>): string {
+    return `${this.getBaseUrl()}${this.getSeekJobDetailsSuffix(seekJobRequest)}`
+  }
+
+  private async retryAuthSession(): Promise<AuthSession> {
+    return await this.webScrapperService.getAuthSession({
+      url: this.getBaseUrl(),
+      source: 'just-join-it',
+    });
+  }
+
+  private getKyGetHeaders(): KyHeadersInit {
+    return {
+      accept:
+        'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+      Cookie: this.authSession?.cookies
+        .map((cookie) => `${cookie.name}=${cookie.value}`)
+        .join('; '),
+      'user-agent':
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36',
+    }
   }
 }

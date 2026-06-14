@@ -1,13 +1,12 @@
 import { SeekJobResolver } from '../seek-job.resolver.ts';
-import type { JobOfferRaw, SeekJobRequest } from '../seek-job.d.ts';
+import type { DetailedJobOfferRaw, JobOfferRaw, SeekJobsRequest } from '../seek-job.d.ts';
 import { injectable } from 'tsyringe';
-import { SeekJobSettings } from '../../services/seek-job.service.ts';
 
-type Request = SeekJobRequest<'solid'>;
+type Request = SeekJobsRequest<'solid-jobs'>;
 
 @injectable()
-export class SolidJobsResolver extends SeekJobResolver<'solid'> {
-  async resolve(seekJobRequest: Request): Promise<JobOfferRaw[]> {
+export class SolidJobsResolver extends SeekJobResolver<'solid-jobs'> {
+  async resolveMany(seekJobRequest: Request): Promise<JobOfferRaw<'solid-jobs'>[]> {
     // TODO: implement SolidJobs scraping / API call
     return [];
   }
@@ -29,5 +28,10 @@ export class SolidJobsResolver extends SeekJobResolver<'solid'> {
   private getSeekJobsUrl(seekJobRequest: Request): string {
     // TODO: implement this
     return '';
+  }
+
+  async resolveOne(seekJobRequest: Request): Promise<DetailedJobOfferRaw<'solid-jobs'>> {
+    // TODO: implement SolidJobs scraping / API call
+    return {} as DetailedJobOfferRaw<'solid-jobs'>;
   }
 }

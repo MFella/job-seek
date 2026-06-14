@@ -2,14 +2,21 @@ import { BaseCommand, NextCommandToExecute } from '../base-command.ts';
 import type { SelectChoiceItem } from '../../common/inquirer.js';
 import { input } from '@inquirer/prompts';
 import { LocalStorageService } from '../../services/local-storage.service.ts';
+import { CommandKey } from '../../questions/questions.ts';
 
 export class AdjustTechstackCommand extends BaseCommand {
+  private static readonly COMMAND_KEY: CommandKey = 'adjust-techstack';
+
   constructor(
     protected readonly message: string,
     protected readonly choices: SelectChoiceItem<string>[],
     private readonly localStorageService: LocalStorageService
   ) {
     super(message);
+  }
+
+  getKey(): CommandKey {
+    return AdjustTechstackCommand.COMMAND_KEY;
   }
 
   async execute(): Promise<NextCommandToExecute[]> {

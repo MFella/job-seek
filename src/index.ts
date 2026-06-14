@@ -1,5 +1,8 @@
 import 'reflect-metadata';
 import appManager from './app-manager/app-manager.ts';
+import readline from 'readline';
+
+readline.emitKeypressEvents(process.stdin);
 
 appManager.start().catch((error) => {
   if (error instanceof Error && error.name === 'ExitPromptError') {

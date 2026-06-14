@@ -2,14 +2,21 @@ import { BaseCommand, NextCommandToExecute } from '../base-command.ts';
 import { select } from '@inquirer/prompts';
 import { LocalStorageService } from '../../services/local-storage.service.ts';
 import { SeekJobService } from '../../services/seek-job.service.ts';
+import { CommandKey } from '../../questions/questions.ts';
 
 export class SeekJobsCommand extends BaseCommand {
+  private static readonly COMMAND_KEY: CommandKey = 'seek-jobs';
+
   constructor(
     protected readonly message: string,
     private readonly localStorageService: LocalStorageService,
     private readonly seekJobService: SeekJobService
   ) {
     super(message);
+  }
+
+  getKey(): CommandKey {
+    return SeekJobsCommand.COMMAND_KEY;
   }
 
   async execute(): Promise<NextCommandToExecute[]> {
@@ -34,8 +41,6 @@ export class SeekJobsCommand extends BaseCommand {
     // TODO: Use logger instead of console.log
     console.log('Seeking jobs with config: ', jobSeekSettings);
 
-    // TODO: implement job seeking logic
-
     const seekedJobs = await this.seekJobService.seekJobs({
       seekSources: jobSeekSettings.seekingSources,
       techstack: jobSeekSettings.techstack,
@@ -54,7 +59,8 @@ export class SeekJobsCommand extends BaseCommand {
     const selectedJobOffer = seekedJobs.find(
       (jobOffer) => jobOffer.id === selectedJob
     );
-    console.log('Slug: ', selectedJobOffer?.slug);
-    return [{ commandKey: 'show-main-menu' }];
+
+    console.log('Slug: ', selectedJobOffer?.slug, selectedJobOffer?.seekSource);
+    return [{ commandKey: 'seek-job', config: { slug: selectedJobOffer?.slug, seekSource: selectedJobOffer?.seekSource } }];
   }
 }

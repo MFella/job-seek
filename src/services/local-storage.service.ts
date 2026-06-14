@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { ConfigService } from '../config/config.service.ts';
 import { chacha20poly1305 } from '@boringnode/encryption/drivers/chacha20_poly1305';
 import { injectable } from 'tsyringe';
-import { SeekSource } from './seek-job.service.ts';
+import { SeekSource } from '../resolvers/seek-job.ts';
 
 type Preferences = {
   seekingSources: SeekSource[];

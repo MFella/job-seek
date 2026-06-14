@@ -1,18 +1,23 @@
 import { BaseCommand, NextCommandToExecute } from '../base-command.ts';
 import type { SelectChoiceItem } from '../../common/inquirer.js';
 import { select } from '@inquirer/prompts';
+import { CommandKey } from '../../questions/questions.ts';
 
-export class ShowFiltersSortingCommand<
-  T extends string,
-> extends BaseCommand<T> {
+export class ShowFiltersSortingCommand extends BaseCommand {
+  private static readonly COMMAND_KEY: CommandKey = 'show-filters-sorting';
+
   constructor(
     protected readonly message: string,
-    protected readonly choices: SelectChoiceItem<T>[]
+    protected readonly choices: SelectChoiceItem<CommandKey>[]
   ) {
     super(message);
   }
 
-  async execute(): Promise<NextCommandToExecute<T>[]> {
+  getKey(): CommandKey {
+    return ShowFiltersSortingCommand.COMMAND_KEY;
+  }
+
+  async execute(): Promise<NextCommandToExecute[]> {
     const selectedCommandKey = await select({
       choices: this.choices,
       message: this.message,

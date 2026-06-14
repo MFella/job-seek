@@ -2,11 +2,14 @@ import { checkbox } from '@inquirer/prompts';
 import { BaseCommand, NextCommandToExecute } from '../base-command.ts';
 import { SelectChoiceItem } from '../../common/inquirer.js';
 import { LocalStorageService } from '../../services/local-storage.service.ts';
-import { SeekSource, SeekSources } from '../../services/seek-job.service.ts';
+import { CommandKey } from '../../questions/questions.ts';
+import { SeekSource, SeekSources } from '../../resolvers/seek-job.ts';
 
 const SUPPORTED_MANY_SEEKING_SOURCES: SeekSources[] = ['just-join-it'];
 
 export class AdjustSeekingSourcesCommand extends BaseCommand {
+  private static readonly COMMAND_KEY: CommandKey = 'adjust-seeking-sources';
+
   constructor(
     protected readonly message: string,
     protected readonly choices: SelectChoiceItem<string>[],
@@ -15,10 +18,13 @@ export class AdjustSeekingSourcesCommand extends BaseCommand {
     super(message);
   }
 
+  getKey(): CommandKey {
+    return AdjustSeekingSourcesCommand.COMMAND_KEY;
+  }
+
   async execute(): Promise<NextCommandToExecute[]> {
     const currentSeekingSources =
       (await this.localStorageService.loadPreferences('seekingSources')) || [];
-    console.log('cc', currentSeekingSources);
     const choices = this.choices.map((choice) => ({
       ...choice,
       checked: currentSeekingSources

@@ -8,6 +8,7 @@ import { LocalStorageService } from '../services/local-storage.service.ts';
 import { AdjustSeekingSourcesCommand } from '../commands/settings/adjust-seeking-sources.command.ts';
 import { ShowSettingsMenuCommand } from '../commands/settings/show-settings-menu.command.ts';
 import { SeekJobService } from '../services/seek-job.service.ts';
+import { SeekJobCommand } from '../commands/job/seek-job.command.ts';
 
 const commandKeysValues = {
   'show-main-menu': ['exit', 'settings'] as const,
@@ -21,6 +22,7 @@ const commandKeysValues = {
   ] as const,
   'adjust-techstack': [] as const,
   'adjust-seeking-sources': [] as const,
+  'seek-job': [] as const,
   exit: [] as const,
 };
 
@@ -51,6 +53,14 @@ const buildCommandsSet = () =>
         container.resolve(LocalStorageService),
         container.resolve(SeekJobService)
       ),
+    ],
+    [
+      'seek-job',
+      new SeekJobCommand(
+        "Fetching details of job...",
+        container.resolve(SeekJobService),
+        container.resolve(LocalStorageService)
+      )
     ],
     [
       'show-techstack',

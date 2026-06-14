@@ -1,13 +1,16 @@
-type ExecutableObject = { execute(): Promise<unknown> };
+type ExecutableObject = { execute(config?: Record<string, unknown>): Promise<unknown> };
 
-type Node<K extends ExecutableObject> = {
+type ExecutableConfig = Record<string, unknown> | undefined;
+
+type Node<K extends ExecutableObject, Config extends ExecutableConfig> = {
   value: K;
+  config?: Config;
 };
 
-export class Stack<T extends Node<ExecutableObject>> {
+export class Stack<T extends Node<ExecutableObject, ExecutableConfig>> {
   private stack: T[] = [];
 
-  constructor(private readonly initNodes?: T[]) {
+  constructor(readonly initNodes?: T[]) {
     if (initNodes?.length && Array.isArray(initNodes)) {
       this.stack = initNodes;
     }

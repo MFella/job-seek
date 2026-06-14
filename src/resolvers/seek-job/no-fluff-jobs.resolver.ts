@@ -1,12 +1,12 @@
 import { SeekJobResolver } from '../seek-job.resolver.ts';
-import type { JobOfferRaw, SeekJobRequest } from '../seek-job.d.ts';
+import type { DetailedJobOfferRaw, JobOfferRaw, SeekJobsRequest } from '../seek-job.d.ts';
 import { injectable } from 'tsyringe';
 
-type Request = SeekJobRequest<'nofluff'>;
+type Request = SeekJobsRequest<'no-fluff-jobs'>;
 
 @injectable()
-export class NoFluffJobsResolver extends SeekJobResolver<'nofluff'> {
-  async resolve(seekJobRequest: Request): Promise<JobOfferRaw[]> {
+export class NoFluffJobsResolver extends SeekJobResolver<'no-fluff-jobs'> {
+  async resolveMany(seekJobRequest: Request): Promise<JobOfferRaw<'no-fluff-jobs'>[]> {
     // TODO: implement NoFluffJobs scraping / API call
     return [];
   }
@@ -28,5 +28,10 @@ export class NoFluffJobsResolver extends SeekJobResolver<'nofluff'> {
   private getSeekJobsUrl(seekJobRequest: Request): string {
     // TODO: implement this
     return '';
+  }
+
+  async resolveOne(seekJobRequest: Request): Promise<DetailedJobOfferRaw<'no-fluff-jobs'>> {
+    // TODO: implement NoFluffJobs scraping / API call
+    return {} as DetailedJobOfferRaw<'no-fluff-jobs'>;
   }
 }

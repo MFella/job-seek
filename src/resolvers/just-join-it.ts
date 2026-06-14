@@ -32,12 +32,13 @@ export interface JustJoinItJobOffer {
   expiredAt: Date;
 }
 
-export interface JustJoinItDetailedJobOffer extends JustJoinItJobOffer {
+export interface JustJoinItDetailedJobOffer extends Omit<JustJoinItJobOffer, 'guid'> {
+  id: string;
+  slug: string;
   companyUrl: string;
   // HTML description of the job offer
   body: string;
   locationId: string;
-  street: string;
   countryCode: string;
   latitude: number;
   longitude: number;
@@ -47,11 +48,11 @@ export interface JustJoinItDetailedJobOffer extends JustJoinItJobOffer {
   customConsent: string;
   companyLogoUrl: string;
   applyUrl: string;
-  companyProfileSlug: null;
-  companyProfileCoverPhotoUrl: null;
-  companyProfileShortDescription: null;
-  videoUrl: null;
-  bannerUrl: null;
+  companyProfileSlug: string | null;
+  companyProfileCoverPhotoUrl: string | null;
+  companyProfileShortDescription: string | null;
+  videoUrl: string | null;
+  bannerUrl: string | null;
 }
 
 export enum ApplyMethod {

@@ -4,11 +4,17 @@ import type { SelectChoiceItem } from '../../common/inquirer.js';
 import { CommandKey } from '../../questions/questions.ts';
 
 export class ShowMainMenuCommand extends BaseCommand {
+  private static readonly COMMAND_KEY: CommandKey = 'show-main-menu';
+
   constructor(
     protected readonly message: string,
     protected readonly choices: SelectChoiceItem<CommandKey>[]
   ) {
     super(message);
+  }
+
+  getKey(): CommandKey {
+    return ShowMainMenuCommand.COMMAND_KEY;
   }
 
   async execute(): Promise<NextCommandToExecute[]> {

@@ -1,6 +1,6 @@
 import { injectable } from 'tsyringe';
 import { spawn } from 'child_process';
-import { JobBoard } from '../resolvers/seek-job.js';
+import { SeekSources } from '../resolvers/seek-job.js';
 
 export type AuthSession = {
   cookies: Cookie[];
@@ -13,7 +13,7 @@ export type Cookie = {
 
 type CrawlerConfig = {
   url: string;
-  source: JobBoard | null;
+  source: SeekSources | null;
 };
 
 @injectable()
