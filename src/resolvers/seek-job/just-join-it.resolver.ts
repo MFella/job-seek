@@ -14,6 +14,7 @@ import { inject, singleton } from 'tsyringe';
 import type { AuthSession } from '../../services/web-scrapper.service.ts';
 import { WebScrapperService } from '../../services/web-scrapper.service.ts';
 import { RestDataService } from '../../rest/rest-data.service.ts';
+import { LoggerService } from '../../logger/logger.service.ts';
 
 type Request = SeekJobsRequest<'just-join-it'>;
 type KyHeadersInit = NonNullable<RequestInit['headers']> | Record<string, string | undefined>;
@@ -27,7 +28,8 @@ export class JustJoinItResolver extends SeekJobResolver<'just-join-it'> {
 
   constructor(
     @inject(RestDataService) restDataService: RestDataService,
-    @inject(WebScrapperService) webScrapperService: WebScrapperService
+    @inject(WebScrapperService) webScrapperService: WebScrapperService,
+    @inject(LoggerService) private readonly logger: LoggerService
   ) {
     super(restDataService, webScrapperService);
   }
@@ -39,7 +41,7 @@ export class JustJoinItResolver extends SeekJobResolver<'just-join-it'> {
     if (cachedData) {
       const timeDiff = new Date().getTime() - cachedData.savedDate.getTime();
       if (timeDiff < JustJoinItResolver.JOB_OFFERS_CACHE_TTL_MS) {
-        console.log('Using cached job offers');
+        this.logger.info('Using cached job offers');
         return cachedData.offers;
       }
     }
@@ -55,7 +57,7 @@ export class JustJoinItResolver extends SeekJobResolver<'just-join-it'> {
       signal: abortSignal,
     });
 
-    console.log("Fetched list length: ", jobOffers.data.length);
+    this.logger.info(`Fetched list length: ${jobOffers.data.length}`);
     const mappedJobOffers = jobOffers.data.map((jobOffer) => ({
       title: jobOffer.title,
       company: jobOffer.companyName,

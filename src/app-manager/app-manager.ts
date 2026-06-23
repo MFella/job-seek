@@ -5,6 +5,7 @@ import { RestDataService } from '../rest/rest-data.service.ts';
 import { fromEvent } from 'rxjs';
 import { CommandConfigs, CommandKey, getCommand } from '../questions/questions.ts';
 import { BaseCommand } from '../commands/base-command.ts';
+import { LoggerService } from '../logger/logger.service.ts';
 
 type BaseCommandStackNode<T extends CommandKey> = { value: BaseCommand<T>, config?: T extends keyof CommandConfigs ? CommandConfigs[T] : never };
 
@@ -14,7 +15,8 @@ export class AppManager {
   ]);
   constructor(
     private readonly configService: ConfigService,
-    private readonly restDataService: RestDataService
+    private readonly restDataService: RestDataService,
+    private readonly logger: LoggerService
   ) { }
 
   private async loadDependencies() { }
@@ -26,7 +28,7 @@ export class AppManager {
       const peekedCommand = this.commandStack.peek();
 
       if (!peekedCommand) {
-        console.log('Skipping empty command...');
+        this.logger.warn('Skipping empty command...');
         continue;
       }
 
@@ -89,15 +91,16 @@ export class AppManager {
       }
 
       if (key.name === 'escape') {
-        const peeked = this.commandStack.peek();
-        if (peeked) {
-          const commandKey = peeked.value.getKey();
+        const peekedCommand = this.commandStack.peek();
+        if (peekedCommand) {
+          const commandKey = peekedCommand.value.getKey();
           if (commandKey === 'show-main-menu') {
             process.exit(0);
           } else {
             // Pop current command and terminate it
             this.commandStack.pop();
-            peeked.value.terminate();
+            peekedCommand.value.terminate();
+            this.logger.info(`Command ${commandKey} aborted`);
           }
         }
       }
@@ -107,5 +110,6 @@ export class AppManager {
 
 export default new AppManager(
   new ConfigService(),
-  container.resolve(RestDataService)
+  container.resolve(RestDataService),
+  container.resolve(LoggerService)
 );

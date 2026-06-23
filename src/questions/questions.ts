@@ -9,6 +9,7 @@ import { AdjustSeekingSourcesCommand } from '../commands/settings/adjust-seeking
 import { ShowSettingsMenuCommand } from '../commands/settings/show-settings-menu.command.ts';
 import { SeekJobService } from '../services/seek-job.service.ts';
 import { SeekJobCommand } from '../commands/job/seek-job.command.ts';
+import { LoggerService } from '../logger/logger.service.ts';
 
 import type { SeekSources } from '../resolvers/seek-job.ts';
 
@@ -65,7 +66,8 @@ const buildCommandsSet = () =>
       new SeekJobsCommand(
         'Seeking for the jobs...',
         container.resolve(LocalStorageService),
-        container.resolve(SeekJobService)
+        container.resolve(SeekJobService),
+        container.resolve(LoggerService)
       ),
     ],
     [
@@ -73,6 +75,7 @@ const buildCommandsSet = () =>
       new SeekJobCommand(
         "Fetching details of job...",
         container.resolve(SeekJobService),
+        container.resolve(LoggerService)
       )
     ],
     [
@@ -83,7 +86,8 @@ const buildCommandsSet = () =>
           { name: 'Adjust stack', value: 'adjust-techstack' },
           { name: 'Go to main menu', value: 'show-main-menu' },
         ],
-        container.resolve(LocalStorageService)
+        container.resolve(LocalStorageService),
+        container.resolve(LoggerService)
       ),
     ],
     [
@@ -94,7 +98,8 @@ const buildCommandsSet = () =>
           { name: 'Show techstack', value: 'show-techstack' },
           { name: 'Go back', value: 'go-back' },
         ],
-        container.resolve(LocalStorageService)
+        container.resolve(LocalStorageService),
+        container.resolve(LoggerService)
       ),
     ],
     [

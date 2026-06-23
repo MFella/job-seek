@@ -3,6 +3,7 @@ import { select } from '@inquirer/prompts';
 import { LocalStorageService } from '../../services/local-storage.service.ts';
 import { SeekJobService } from '../../services/seek-job.service.ts';
 import { CommandKey } from '../../questions/questions.ts';
+import { LoggerService } from '../../logger/logger.service.ts';
 
 export class SeekJobsCommand extends BaseCommand {
   private static readonly COMMAND_KEY: CommandKey = 'seek-jobs';
@@ -10,7 +11,8 @@ export class SeekJobsCommand extends BaseCommand {
   constructor(
     protected readonly message: string,
     private readonly localStorageService: LocalStorageService,
-    private readonly seekJobService: SeekJobService
+    private readonly seekJobService: SeekJobService,
+    private readonly logger: LoggerService
   ) {
     super(message);
   }
@@ -23,8 +25,7 @@ export class SeekJobsCommand extends BaseCommand {
     const jobSeekSettings = await this.localStorageService.loadPreferences();
 
     if (!jobSeekSettings || Object.keys(jobSeekSettings).length === 0) {
-      // TODO: Use logger instead of console.log
-      console.log('No job seek settings found. Please adjust settings.');
+      this.logger.warn('No job seek settings found. Please adjust settings.');
       return [{ commandKey: 'show-main-menu' }];
     } else if (
       !jobSeekSettings.techstack ||
@@ -32,14 +33,12 @@ export class SeekJobsCommand extends BaseCommand {
       !jobSeekSettings.seekingSources ||
       jobSeekSettings.seekingSources?.length === 0
     ) {
-      // TODO: Use logger instead of console.log
-      console.log(
+      this.logger.warn(
         'No techstack or seeking sources found. Please adjust settings.'
       );
       return [{ commandKey: 'show-main-menu' }];
     }
-    // TODO: Use logger instead of console.log
-    console.log('Seeking jobs with config: ', jobSeekSettings);
+    this.logger.info(`Seeking jobs with config: ${JSON.stringify(jobSeekSettings)}`);
 
     const seekedJobs = await this.seekJobService.seekJobs({
       seekSources: jobSeekSettings.seekingSources,
@@ -63,11 +62,11 @@ export class SeekJobsCommand extends BaseCommand {
     );
 
     if (!selectedJobOffer) {
-      console.log('Selected job not found.');
+      this.logger.warn('Selected job not found.');
       return [{ commandKey: 'show-main-menu' }];
     }
 
-    console.log('Slug: ', selectedJobOffer.slug, selectedJobOffer.seekSource);
+    this.logger.info(`Slug: ${selectedJobOffer.slug} | ${selectedJobOffer.seekSource}`);
     return [{ commandKey: 'seek-job', config: { slug: selectedJobOffer.slug, seekSource: selectedJobOffer.seekSource } }];
   }
 }

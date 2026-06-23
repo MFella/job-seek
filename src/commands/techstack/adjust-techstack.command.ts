@@ -3,6 +3,7 @@ import type { SelectChoiceItem } from '../../common/inquirer.js';
 import { input } from '@inquirer/prompts';
 import { LocalStorageService } from '../../services/local-storage.service.ts';
 import { CommandKey } from '../../questions/questions.ts';
+import { LoggerService } from '../../logger/logger.service.ts';
 
 export class AdjustTechstackCommand extends BaseCommand {
   private static readonly COMMAND_KEY: CommandKey = 'adjust-techstack';
@@ -10,7 +11,8 @@ export class AdjustTechstackCommand extends BaseCommand {
   constructor(
     protected readonly message: string,
     protected readonly choices: SelectChoiceItem<string>[],
-    private readonly localStorageService: LocalStorageService
+    private readonly localStorageService: LocalStorageService,
+    private readonly logger: LoggerService
   ) {
     super(message);
   }
@@ -29,7 +31,7 @@ export class AdjustTechstackCommand extends BaseCommand {
       signal: this.executionTerminationSignal,
     });
     if (result.length === 0) {
-      console.log("Techstack won't be overridden.");
+      this.logger.info("Techstack won't be overridden.");
     }
 
     this.localStorageService.savePreferences(

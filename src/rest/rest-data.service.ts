@@ -1,11 +1,14 @@
 import ky, { type KyInstance, type Options } from 'ky';
-import { injectable } from 'tsyringe';
+import { inject, injectable } from 'tsyringe';
+import { LoggerService } from '../logger/logger.service.ts';
 
 @injectable()
 export class RestDataService {
   private readonly client: KyInstance;
 
-  constructor() {
+  constructor(
+    @inject(LoggerService) private readonly logger: LoggerService
+  ) {
     this.client = ky.create({
       timeout: 10_000,
       retry: {
@@ -15,12 +18,12 @@ export class RestDataService {
       hooks: {
         beforeRequest: [
           (request: any) => {
-            console.debug(`[RestDataService] ${request.method} ${request.url}`);
+            this.logger.debug(`[RestDataService] ${request.method} ${request.url}`);
           },
         ],
         afterResponse: [
           (response: any) => {
-            console.debug(
+            this.logger.debug(
               `[RestDataService] Response status: ${response.status}`
             );
             return response;
@@ -29,8 +32,9 @@ export class RestDataService {
         beforeError: [
           (error) => {
             const { request } = error;
-            console.error(
-              `[RestDataService] Request failed: ${request.method} ${request.url}`
+            this.logger.error(
+              `[RestDataService] Request failed: ${request.method} ${request.url}`,
+              error
             );
             return error.error;
           },

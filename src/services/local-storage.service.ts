@@ -3,8 +3,9 @@ import { writeFile, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { ConfigService } from '../config/config.service.ts';
 import { chacha20poly1305 } from '@boringnode/encryption/drivers/chacha20_poly1305';
-import { injectable } from 'tsyringe';
+import { inject, injectable } from 'tsyringe';
 import { SeekSource } from '../resolvers/seek-job.ts';
+import { LoggerService } from '../logger/logger.service.ts';
 
 type Preferences = {
   seekingSources: SeekSource[];
@@ -16,7 +17,9 @@ export class LocalStorageService {
   private readonly encryptionInstance;
   private readonly filePath: string;
 
-  constructor() {
+  constructor(
+    @inject(LoggerService) private readonly logger: LoggerService
+  ) {
     this.encryptionInstance = new Encryption(
       chacha20poly1305({
         id: 'app',
@@ -47,7 +50,7 @@ export class LocalStorageService {
 
       await writeFile(this.filePath, encryptedData, 'utf-8');
     } catch (error) {
-      console.error('Failed to save preferences:', error);
+      this.logger.error('Failed to save preferences', error);
       throw error;
     }
   }
@@ -66,7 +69,7 @@ export class LocalStorageService {
     try {
       const encryptedData = await readFile(this.filePath, 'utf-8');
       const decryptedData =
-        this.encryptionInstance.decrypt<string>(encryptedData);
+         this.encryptionInstance.decrypt<string>(encryptedData);
       if (!decryptedData) {
         return null;
       }
@@ -81,7 +84,7 @@ export class LocalStorageService {
       if (error.code === 'ENOENT') {
         return null;
       }
-      console.error('Failed to load preferences:', error);
+      this.logger.error('Failed to load preferences', error);
       throw error;
     }
   }

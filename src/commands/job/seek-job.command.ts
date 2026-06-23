@@ -4,6 +4,8 @@ import { SeekJobService } from "../../services/seek-job.service.ts";
 import { SeekSources } from "../../resolvers/seek-job.ts";
 import { compile, HtmlToTextOptions } from "html-to-text";
 import { select } from "@inquirer/prompts";
+import { LoggerService } from "../../logger/logger.service.ts";
+import open from "open";
 
 const options: HtmlToTextOptions = {
     wordwrap: 130,
@@ -17,7 +19,8 @@ export class SeekJobCommand extends BaseCommand<'seek-job'> {
 
     constructor(
         protected readonly message: string,
-        private readonly seekJobService: SeekJobService
+        private readonly seekJobService: SeekJobService,
+        private readonly logger: LoggerService
     ) {
         super(message, false);
     }
@@ -27,11 +30,10 @@ export class SeekJobCommand extends BaseCommand<'seek-job'> {
     }
 
     async execute(config?: CommandConfigs['seek-job']): Promise<NextCommandToExecute[]> {
-        // TODO: Use logger instead of console.log
-        console.log('Seeking job with config: ', config);
+        this.logger.info(`Seeking job with config: ${JSON.stringify(config)}`);
 
         if (!config) {
-            console.log("No config found. Skipping");
+            this.logger.warn("No config found. Skipping");
             return [{ commandKey: 'show-main-menu' }];
         }
 
@@ -40,8 +42,7 @@ export class SeekJobCommand extends BaseCommand<'seek-job'> {
             slug: config.slug
         });
 
-        // TODO: Adjust display of that
-        console.log('Seeked job description', compiledConvert(seekedJob.description));
+        this.logger.info(`Seeked job description:\n${compiledConvert(seekedJob.description)}`);
 
         const commandKey = await select<'go-back' | 'open-job-in-browser'>({
             message: 'Perform action on seeked job',

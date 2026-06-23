@@ -1,6 +1,9 @@
-import { injectable } from 'tsyringe';
+import { inject, injectable } from 'tsyringe';
 import { spawn } from 'child_process';
 import { SeekSources } from '../resolvers/seek-job.js';
+import { LoggerService } from '../logger/logger.service.ts';
+import { firstValueFrom, fromEvent, race, Subject, timer } from 'rxjs';
+import { map, take } from 'rxjs/operators';
 
 export type AuthSession = {
   cookies: Cookie[];
@@ -19,45 +22,65 @@ type CrawlerConfig = {
 
 @injectable()
 export class WebScrapperService {
+  constructor(
+    @inject(LoggerService) private readonly logger: LoggerService
+  ) {}
+
   async getAuthSession(config: CrawlerConfig): Promise<AuthSession> {
     const scrapperProcess = spawn('python3', [
       './scripts/nodriver_scrapper.py',
       config.url,
     ]);
 
-    return new Promise((resolve, reject) => {
-      if (config.abortSignal) {
-        config.abortSignal.addEventListener('abort', () => {
-          scrapperProcess.stdin?.end();
+    scrapperProcess.stdout.setEncoding('utf8');
 
-          const killTimeout = setTimeout(() => {
-            scrapperProcess.kill();
-          }, 1500);
+    const abort$ = new Subject<never>();
+    const onAbort = () => {
+      scrapperProcess.stdin?.end();
+      const killTimeout = setTimeout(() => {
+        scrapperProcess.kill();
+      }, 1500);
+      scrapperProcess.on('exit', () => {
+        clearTimeout(killTimeout);
+      });
+      abort$.error(new Error('Scrapper process terminated'));
+    };
 
-          scrapperProcess.on('exit', () => {
-            clearTimeout(killTimeout);
-          });
+    if (config.abortSignal) {
+      config.abortSignal.addEventListener('abort', onAbort);
+    }
 
-          reject(new Error('Scrapper process terminated'));
-        });
-      }
-
-      scrapperProcess.stdout.setEncoding('utf8');
-      scrapperProcess.stdout.on('data', (data: string) => {
+    const data$ = fromEvent<string>(scrapperProcess.stdout, 'data').pipe(
+      take(1),
+      map((data: string) => {
+        scrapperProcess.stdout.destroy();
         try {
           const parsedData = JSON.parse(data) as Cookie[];
-          resolve({ cookies: parsedData });
+          return { cookies: parsedData };
         } catch (error: unknown) {
-          console.error(
+          this.logger.error(
             `Cannot retrieve job data from: ${config.source}`,
             error
           );
-          reject(error);
+          throw error;
         }
+      })
+    );
 
-        // We're interested in the first chunk of data
-        scrapperProcess.stdout.destroy();
-      });
-    });
+    const timeout$ = timer(10_000).pipe(
+      map(() => {
+        scrapperProcess.stdin?.end();
+        scrapperProcess.kill();
+        throw new Error('Scrapper timeout - No response within threshold');
+      })
+    );
+
+    try {
+      return await firstValueFrom(race(data$, timeout$, abort$));
+    } finally {
+      if (config.abortSignal) {
+        config.abortSignal.removeEventListener('abort', onAbort);
+      }
+    }
   }
 }
