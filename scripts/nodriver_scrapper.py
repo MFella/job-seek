@@ -18,19 +18,15 @@ def cookie_serializer(obj):
     raise TypeError(f"Object of type {type(obj).__name__} is not JSON serializable")
 
 def watch_stdin(driver):
-    try:
-        # Readline blocks until stdin has input or is closed (EOF)
-        sys.stdin.readline()
-    except Exception:
-        pass
-    finally:
-        if driver:
+    initial_ppid = os.getppid()
+    while True:
+        time.sleep(1)
+        if os.getppid() != initial_ppid or os.getppid() == 1:
             try:
                 driver.stop()
             except Exception:
                 pass
-        # Exit immediately
-        os._exit(0)
+            os._exit(0)
 
 async def main():
     url = sys.argv[1] if len(sys.argv) > 1 else ''

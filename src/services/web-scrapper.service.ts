@@ -22,12 +22,14 @@ type CrawlerConfig = {
 
 @injectable()
 export class WebScrapperService {
+  private static readonly SCRAPPER_TIMEOUT = 20_000;
   constructor(
     @inject(LoggerService) private readonly logger: LoggerService
   ) {}
 
   async getAuthSession(config: CrawlerConfig): Promise<AuthSession> {
     const scrapperProcess = spawn('python3', [
+      "-u",
       './scripts/nodriver_scrapper.py',
       config.url,
     ]);
@@ -67,7 +69,7 @@ export class WebScrapperService {
       })
     );
 
-    const timeout$ = timer(10_000).pipe(
+    const timeout$ = timer(WebScrapperService.SCRAPPER_TIMEOUT).pipe(
       map(() => {
         scrapperProcess.stdin?.end();
         scrapperProcess.kill();
