@@ -25,6 +25,8 @@ export class AdjustTechstackCommand extends BaseCommand {
       validate: (value: string) => {
         return true;
       },
+    }, {
+      signal: this.executionTerminationSignal,
     });
     if (result.length === 0) {
       console.log("Techstack won't be overridden.");

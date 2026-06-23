@@ -10,6 +10,18 @@ import { ShowSettingsMenuCommand } from '../commands/settings/show-settings-menu
 import { SeekJobService } from '../services/seek-job.service.ts';
 import { SeekJobCommand } from '../commands/job/seek-job.command.ts';
 
+import type { SeekSources } from '../resolvers/seek-job.ts';
+
+export type CommandConfigs = {
+  "go-back": {
+    commandKeyToRewind: CommandKey;
+  };
+  "seek-job": {
+    seekSource: SeekSources;
+    slug?: string;
+  };
+};
+
 const commandKeysValues = {
   'show-main-menu': ['exit', 'settings'] as const,
   'show-settings-menu': ['exit', 'settings'] as const,
@@ -24,6 +36,8 @@ const commandKeysValues = {
   'adjust-seeking-sources': [] as const,
   'seek-job': [] as const,
   exit: [] as const,
+  "open-job-in-browser": [] as const,
+  "go-back": [] as const,
 };
 
 export type CommandKey = keyof typeof commandKeysValues;
@@ -59,7 +73,6 @@ const buildCommandsSet = () =>
       new SeekJobCommand(
         "Fetching details of job...",
         container.resolve(SeekJobService),
-        container.resolve(LocalStorageService)
       )
     ],
     [
@@ -98,7 +111,7 @@ const buildCommandsSet = () =>
         ],
         container.resolve(LocalStorageService)
       ),
-    ],
+    ]
   ]);
 
 let commandsSet: Map<CommandKey, BaseCommand>;
@@ -110,6 +123,6 @@ export const getCommandsSet = () => {
   return commandsSet;
 };
 
-export const getCommand = (key: CommandKey): BaseCommand => {
+export const getCommand = <K extends CommandKey>(key: K) => {
   return getCommandsSet().get(key)!;
 };

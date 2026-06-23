@@ -28,7 +28,8 @@ export class SeekJobService {
   ) { }
 
   async seekJobs(
-    jobSeekSettings: SeekJobSettings
+    jobSeekSettings: SeekJobSettings,
+    abortSignal?: AbortSignal
   ): Promise<
     (Pick<
       JobOfferRaw<SeekSources>,
@@ -47,7 +48,7 @@ export class SeekJobService {
       await Promise.all(
         seekSourceNames.map((seekSourceName) =>
           this.getSeekJobResolver(seekSourceName).resolveMany(
-            toSeekJobsRequest(jobSeekSettings, seekSourceName)
+            toSeekJobsRequest(jobSeekSettings, seekSourceName), abortSignal
           )
         )
       )
@@ -56,11 +57,11 @@ export class SeekJobService {
     return jobOffers;
   }
 
-  async seekJob(jobSeekSettings: SeekJobSettings<"one">): Promise<DetailedJobOfferRaw<typeof jobSeekSettings.seekSource>> {
+  async seekJob(jobSeekSettings: SeekJobSettings<"one">, abortSignal?: AbortSignal): Promise<DetailedJobOfferRaw<typeof jobSeekSettings.seekSource>> {
     const resolver = this.getSeekJobResolver(jobSeekSettings.seekSource);
 
     return await resolver.resolveOne(
-      toSeekJobRequest(jobSeekSettings)
+      toSeekJobRequest(jobSeekSettings), abortSignal
     );
   }
 

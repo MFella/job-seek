@@ -44,7 +44,7 @@ export class SeekJobsCommand extends BaseCommand {
     const seekedJobs = await this.seekJobService.seekJobs({
       seekSources: jobSeekSettings.seekingSources,
       techstack: jobSeekSettings.techstack,
-    });
+    }, this.executionTerminationSignal);
 
     const selectedJob = await select({
       choices: seekedJobs.map((jobOffer) => ({
@@ -54,13 +54,20 @@ export class SeekJobsCommand extends BaseCommand {
       })),
       pageSize: 5,
       message: this.message,
+    }, {
+      signal: this.executionTerminationSignal,
     });
 
     const selectedJobOffer = seekedJobs.find(
       (jobOffer) => jobOffer.id === selectedJob
     );
 
-    console.log('Slug: ', selectedJobOffer?.slug, selectedJobOffer?.seekSource);
-    return [{ commandKey: 'seek-job', config: { slug: selectedJobOffer?.slug, seekSource: selectedJobOffer?.seekSource } }];
+    if (!selectedJobOffer) {
+      console.log('Selected job not found.');
+      return [{ commandKey: 'show-main-menu' }];
+    }
+
+    console.log('Slug: ', selectedJobOffer.slug, selectedJobOffer.seekSource);
+    return [{ commandKey: 'seek-job', config: { slug: selectedJobOffer.slug, seekSource: selectedJobOffer.seekSource } }];
   }
 }

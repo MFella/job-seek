@@ -2,8 +2,10 @@ import nodriver as uc
 import sys
 import json
 import asyncio
-import nodriver as uc
-import dataclasses, enum
+import dataclasses
+import enum
+import threading
+import os
 
 ev_path = "results/"
 cf_token = ""
@@ -15,6 +17,21 @@ def cookie_serializer(obj):
         return obj.value
     raise TypeError(f"Object of type {type(obj).__name__} is not JSON serializable")
 
+def watch_stdin(driver):
+    try:
+        # Readline blocks until stdin has input or is closed (EOF)
+        sys.stdin.readline()
+    except Exception:
+        pass
+    finally:
+        if driver:
+            try:
+                driver.stop()
+            except Exception:
+                pass
+        # Exit immediately
+        os._exit(0)
+
 async def main():
     url = sys.argv[1] if len(sys.argv) > 1 else ''
     if not url:
@@ -23,24 +40,27 @@ async def main():
     
     driver = await uc.start()
 
-    tab = await driver.get(url)
-
-    await tab.sleep(6)
+    # Start daemon thread to close browser if parent process exits or closes stdin
+    threading.Thread(target=watch_stdin, args=(driver,), daemon=True).start()
 
     try:
-        await tab.verify_cf()
-    except Exception as e:
-        print(e)
-    
-    await asyncio.sleep(5)
-    # raw_content = await tab.evaluate("document.querySelector('pre').innerText")
-    # data = json.loads(raw_content)
+        tab = await driver.get(url)
+        await tab.sleep(6)
 
-    # Print json content to stdout
-    # print(json.dumps(data))
-    cookies_list = await tab.send(uc.cdp.storage.get_cookies())
-
-    print(json.dumps(cookies_list, default=cookie_serializer))
+        try:
+            await tab.verify_cf()
+        except Exception as e:
+            # Print exceptions to stderr so they don't break JSON parsing of stdout in Node.js
+            print(e, file=sys.stderr)
+        
+        await asyncio.sleep(5)
+        cookies_list = await tab.send(uc.cdp.storage.get_cookies())
+        print(json.dumps(cookies_list, default=cookie_serializer))
+    finally:
+        try:
+            driver.stop()
+        except Exception:
+            pass
 
 if __name__ == "__main__":
     uc.loop().run_until_complete(main())

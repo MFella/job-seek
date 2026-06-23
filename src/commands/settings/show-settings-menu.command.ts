@@ -20,6 +20,8 @@ export class ShowSettingsMenuCommand extends BaseCommand {
     const result = await select({
       message: this.message,
       choices: this.choices,
+    }, {
+      signal: this.executionTerminationSignal,
     });
 
     return [{ commandKey: result }];

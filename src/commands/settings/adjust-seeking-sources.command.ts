@@ -35,6 +35,8 @@ export class AdjustSeekingSourcesCommand extends BaseCommand {
     const result = await checkbox({
       message: this.message,
       choices,
+    }, {
+      signal: this.executionTerminationSignal,
     });
 
     const seekingSourcesToUpdate: SeekSource[] = result.map((source) => ({

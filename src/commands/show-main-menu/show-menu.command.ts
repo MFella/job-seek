@@ -21,6 +21,8 @@ export class ShowMainMenuCommand extends BaseCommand {
     const selectedCommandKey = await select({
       choices: this.choices,
       message: this.message,
+    }, {
+      signal: this.executionTerminationSignal,
     });
 
     return [{ commandKey: selectedCommandKey }];

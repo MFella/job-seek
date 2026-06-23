@@ -14,23 +14,34 @@ export type Cookie = {
 type CrawlerConfig = {
   url: string;
   source: SeekSources | null;
+  abortSignal?: AbortSignal;
 };
 
 @injectable()
 export class WebScrapperService {
-  private crawlerConfig: CrawlerConfig = {
-    url: '',
-    source: null,
-  };
-
   async getAuthSession(config: CrawlerConfig): Promise<AuthSession> {
-    this.crawlerConfig = config;
     const scrapperProcess = spawn('python3', [
       './scripts/nodriver_scrapper.py',
-      this.crawlerConfig.url,
+      config.url,
     ]);
 
     return new Promise((resolve, reject) => {
+      if (config.abortSignal) {
+        config.abortSignal.addEventListener('abort', () => {
+          scrapperProcess.stdin?.end();
+
+          const killTimeout = setTimeout(() => {
+            scrapperProcess.kill();
+          }, 1500);
+
+          scrapperProcess.on('exit', () => {
+            clearTimeout(killTimeout);
+          });
+
+          reject(new Error('Scrapper process terminated'));
+        });
+      }
+
       scrapperProcess.stdout.setEncoding('utf8');
       scrapperProcess.stdout.on('data', (data: string) => {
         try {
@@ -38,7 +49,7 @@ export class WebScrapperService {
           resolve({ cookies: parsedData });
         } catch (error: unknown) {
           console.error(
-            `Cannot retrieve job data from: ${this.crawlerConfig.source}`,
+            `Cannot retrieve job data from: ${config.source}`,
             error
           );
           reject(error);

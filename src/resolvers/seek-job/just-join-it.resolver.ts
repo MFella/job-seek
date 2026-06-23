@@ -32,7 +32,7 @@ export class JustJoinItResolver extends SeekJobResolver<'just-join-it'> {
     super(restDataService, webScrapperService);
   }
 
-  async resolveMany(seekJobsRequest: Request): Promise<JobOfferRaw<'just-join-it'>[]> {
+  async resolveMany(seekJobsRequest: Request, abortSignal?: AbortSignal): Promise<JobOfferRaw<'just-join-it'>[]> {
     const cacheKey = btoa(JSON.stringify(seekJobsRequest));
     const cachedData = this.cachedResolvedJobsMap.get(cacheKey);
 
@@ -45,13 +45,14 @@ export class JustJoinItResolver extends SeekJobResolver<'just-join-it'> {
     }
 
     if (!this.authSession) {
-      this.authSession = await this.retryAuthSession();
+      this.authSession = await this.retryAuthSession(abortSignal);
     }
 
     const jobOffers = await this.restDataService.get<
       GetJobBoardJobsApiResponse<'just-join-it'>
     >(this.getSeekJobsUrl(seekJobsRequest), {
-      headers: this.getKyGetHeaders()
+      headers: this.getKyGetHeaders(),
+      signal: abortSignal,
     });
 
     console.log("Fetched list length: ", jobOffers.data.length);
@@ -69,15 +70,16 @@ export class JustJoinItResolver extends SeekJobResolver<'just-join-it'> {
     return mappedJobOffers;
   }
 
-  async resolveOne(seekJobRequest: SeekJobRequest<'just-join-it'>): Promise<DetailedJobOfferRaw<'just-join-it'>> {
+  async resolveOne(seekJobRequest: SeekJobRequest<'just-join-it'>, abortSignal?: AbortSignal): Promise<DetailedJobOfferRaw<'just-join-it'>> {
     if (!this.authSession) {
-      this.authSession = await this.retryAuthSession();
+      this.authSession = await this.retryAuthSession(abortSignal);
     }
 
     const jobOffer = await this.restDataService.get<
       GetJobBoardSingleJobApiResponse<'just-join-it'>
     >(this.getSeekJobUrl(seekJobRequest), {
-      headers: this.getKyGetHeaders()
+      headers: this.getKyGetHeaders(),
+      signal: abortSignal
     });
 
     return { ...jobOffer, company: jobOffer.companyName, url: jobOffer.applyUrl, seekSource: 'just-join-it', description: jobOffer.body };
@@ -105,10 +107,11 @@ export class JustJoinItResolver extends SeekJobResolver<'just-join-it'> {
     return `${this.getBaseUrl()}${this.getSeekJobDetailsSuffix(seekJobRequest)}`
   }
 
-  private async retryAuthSession(): Promise<AuthSession> {
+  private async retryAuthSession(abortSignal?: AbortSignal): Promise<AuthSession> {
     return await this.webScrapperService.getAuthSession({
       url: this.getBaseUrl(),
       source: 'just-join-it',
+      abortSignal
     });
   }
 

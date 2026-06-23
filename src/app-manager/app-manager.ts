@@ -3,13 +3,13 @@ import { ConfigService } from '../config/config.service.ts';
 import { Stack } from '../shared/data-structures/stack.ts';
 import { RestDataService } from '../rest/rest-data.service.ts';
 import { fromEvent } from 'rxjs';
-import { getCommand } from '../questions/questions.ts';
+import { CommandConfigs, CommandKey, getCommand } from '../questions/questions.ts';
 import { BaseCommand } from '../commands/base-command.ts';
 
-type BaseCommandStackNode = { value: BaseCommand; config?: Record<string, unknown> };
+type BaseCommandStackNode<T extends CommandKey> = { value: BaseCommand<T>, config?: T extends keyof CommandConfigs ? CommandConfigs[T] : never };
 
 export class AppManager {
-  private commandStack = new Stack<BaseCommandStackNode>([
+  private commandStack = new Stack<BaseCommandStackNode<CommandKey>>([
     { value: getCommand('show-main-menu') },
   ]);
   constructor(
@@ -31,32 +31,74 @@ export class AppManager {
       }
 
       const { value: nextCommand } = peekedCommand;
-      const result = await nextCommand.execute(peekedCommand?.config);
-
-      result.forEach(({ commandKey, config }) => {
-        if (commandKey === 'exit') {
-          this.commandStack.clear();
-          return;
+      try {
+        if (process.stdin.isTTY) {
+          process.stdin.setRawMode(true);
+          process.stdin.resume();
         }
-        const resultCommand = getCommand(commandKey);
 
-        if (resultCommand) {
-          this.commandStack.push({ value: resultCommand, ...(config ? { config } : {}) });
+        const result = await nextCommand.execute(peekedCommand?.config);
+
+        if (process.stdin.isTTY) {
+          process.stdin.setRawMode(false);
         }
-      });
+
+        if (!nextCommand.isPermanent()) {
+          this.commandStack.removeAtValue(nextCommand);
+        }
+
+        for (const next of result) {
+          if (next.commandKey === 'exit') {
+            this.commandStack.clear();
+            return;
+          }
+
+          if (next.commandKey === "go-back") {
+            const targetKey = next.config?.commandKeyToRewind;
+            if (targetKey) {
+              this.commandStack.removeUpToValue(getCommand(targetKey));
+            }
+            continue;
+          }
+          const resultCommand = getCommand(next.commandKey);
+
+          if (resultCommand) {
+            this.commandStack.push({ value: resultCommand, ...(next.config ? { config: next.config } : {}) });
+          }
+        }
+      } catch (error) {
+        if (process.stdin.isTTY) {
+          process.stdin.setRawMode(false);
+        }
+        if (nextCommand.isAborted()) {
+          continue;
+        }
+        throw error;
+      }
     }
   }
 
   private observeEscClicked() {
-    fromEvent(process.stdin, 'keypress', (_key, data) => {
-      return data.name;
+    fromEvent(process.stdin, 'keypress', (_char, key) => {
+      return key;
     }).subscribe((key) => {
-      if (key === 'escape') {
-        console.log('popping...');
-        const commandKey = this.commandStack.peek()?.value?.getKey();
-        if (commandKey === 'show-main-menu') {
-          process.exit(0);
-        } else {
+      if (!key) return;
+
+      if (key.ctrl && key.name === 'c') {
+        process.exit(0);
+      }
+
+      if (key.name === 'escape') {
+        const peeked = this.commandStack.peek();
+        if (peeked) {
+          const commandKey = peeked.value.getKey();
+          if (commandKey === 'show-main-menu') {
+            process.exit(0);
+          } else {
+            // Pop current command and terminate it
+            this.commandStack.pop();
+            peeked.value.terminate();
+          }
         }
       }
     });

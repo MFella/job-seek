@@ -22,7 +22,7 @@ export abstract class SeekJobResolver<T extends SeekSources> {
   protected abstract getSeekJobDetailsSuffix(
     config?: SeekJobDetailsSuffixConfig
   ): string;
-  abstract resolveMany(seekJobRequest: SeekJobsRequest<T>): Promise<JobOfferRaw<T>[]>;
+  abstract resolveMany(seekJobRequest: SeekJobsRequest<T>, abortSignal?: AbortSignal): Promise<JobOfferRaw<T>[]>;
 
-  abstract resolveOne(seekJobRequest: SeekJobRequest<T>): Promise<DetailedJobOfferRaw<T>>;
+  abstract resolveOne(seekJobRequest: SeekJobRequest<T>, abortSignal?: AbortSignal): Promise<DetailedJobOfferRaw<T>>;
 }
