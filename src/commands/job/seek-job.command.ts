@@ -42,9 +42,9 @@ export class SeekJobCommand extends BaseCommand<'seek-job'> {
       slug: config.slug,
     });
 
-    this.logger.info(
-      `Seeked job description:\n${compiledConvert(seekedJob.description)}`
-    );
+    const convertedDescription = compiledConvert(seekedJob.description);
+
+    this.logger.info(`Seeked job description:\n${convertedDescription}`);
 
     const commandKey = await select<
       'go-back' | 'open-job-in-browser' | 'generate-tailored-cv'
@@ -56,7 +56,6 @@ export class SeekJobCommand extends BaseCommand<'seek-job'> {
           {
             name: 'Generate tailored CV',
             value: 'generate-tailored-cv',
-            disabled: true,
           },
           { name: 'Go back', value: 'go-back' },
         ],
@@ -72,6 +71,19 @@ export class SeekJobCommand extends BaseCommand<'seek-job'> {
       } catch (e) {
         this.logger.error('Failed to open job in browser', e);
       }
+    }
+
+    if (commandKey === 'generate-tailored-cv') {
+      return [
+        {
+          commandKey,
+          config: {
+            jobTitle: seekedJob.title,
+            company: seekedJob.company,
+            jobDescriptionText: convertedDescription,
+          },
+        },
+      ];
     }
 
     return [

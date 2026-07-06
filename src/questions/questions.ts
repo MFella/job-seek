@@ -9,17 +9,25 @@ import { AdjustSeekingSourcesCommand } from '../commands/settings/adjust-seeking
 import { ShowSettingsMenuCommand } from '../commands/settings/show-settings-menu.command.ts';
 import { SeekJobService } from '../services/seek-job.service.ts';
 import { SeekJobCommand } from '../commands/job/seek-job.command.ts';
+import { GenerateTailoredCvCommand } from '../commands/job/generate-tailored-cv.command.ts';
+import { TailoredCvService } from '../services/tailored-cv.service.ts';
+import { CvPdfService } from '../services/cv-pdf.service.ts';
 import { LoggerService } from '../logger/logger.service.ts';
 
 import type { SeekSources } from '../resolvers/seek-job.ts';
 
 export type CommandConfigs = {
-  "go-back": {
+  'go-back': {
     commandKeyToRewind: CommandKey;
   };
-  "seek-job": {
+  'seek-job': {
     seekSource: SeekSources;
     slug?: string;
+  };
+  'generate-tailored-cv': {
+    jobTitle: string;
+    company: string;
+    jobDescriptionText: string;
   };
 };
 
@@ -36,9 +44,10 @@ const commandKeysValues = {
   'adjust-techstack': [] as const,
   'adjust-seeking-sources': [] as const,
   'seek-job': [] as const,
+  'generate-tailored-cv': [] as const,
   exit: [] as const,
-  "open-job-in-browser": [] as const,
-  "go-back": [] as const,
+  'open-job-in-browser': [] as const,
+  'go-back': [] as const,
 };
 
 export type CommandKey = keyof typeof commandKeysValues;
@@ -73,10 +82,20 @@ const buildCommandsSet = () =>
     [
       'seek-job',
       new SeekJobCommand(
-        "Fetching details of job...",
+        'Fetching details of job...',
         container.resolve(SeekJobService),
         container.resolve(LoggerService)
-      )
+      ),
+    ],
+    [
+      'generate-tailored-cv',
+      new GenerateTailoredCvCommand(
+        'Generating tailored CV...',
+        container.resolve(LocalStorageService),
+        container.resolve(TailoredCvService),
+        container.resolve(CvPdfService),
+        container.resolve(LoggerService)
+      ),
     ],
     [
       'show-techstack',
@@ -116,7 +135,7 @@ const buildCommandsSet = () =>
         ],
         container.resolve(LocalStorageService)
       ),
-    ]
+    ],
   ]);
 
 let commandsSet: Map<CommandKey, BaseCommand>;
