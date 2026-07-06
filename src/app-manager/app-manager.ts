@@ -3,11 +3,18 @@ import { ConfigService } from '../config/config.service.ts';
 import { Stack } from '../shared/data-structures/stack.ts';
 import { RestDataService } from '../rest/rest-data.service.ts';
 import { fromEvent } from 'rxjs';
-import { CommandConfigs, CommandKey, getCommand } from '../questions/questions.ts';
+import {
+  CommandConfigs,
+  CommandKey,
+  getCommand,
+} from '../questions/questions.ts';
 import { BaseCommand } from '../commands/base-command.ts';
 import { LoggerService } from '../logger/logger.service.ts';
 
-type BaseCommandStackNode<T extends CommandKey> = { value: BaseCommand<T>, config?: T extends keyof CommandConfigs ? CommandConfigs[T] : never };
+type BaseCommandStackNode<T extends CommandKey> = {
+  value: BaseCommand<T>;
+  config?: T extends keyof CommandConfigs ? CommandConfigs[T] : never;
+};
 
 export class AppManager {
   private commandStack = new Stack<BaseCommandStackNode<CommandKey>>([
@@ -17,9 +24,9 @@ export class AppManager {
     private readonly configService: ConfigService,
     private readonly restDataService: RestDataService,
     private readonly logger: LoggerService
-  ) { }
+  ) {}
 
-  private async loadDependencies() { }
+  private async loadDependencies() {}
 
   async start() {
     await this.loadDependencies();
@@ -55,7 +62,7 @@ export class AppManager {
             return;
           }
 
-          if (next.commandKey === "go-back") {
+          if (next.commandKey === 'go-back') {
             const targetKey = next.config?.commandKeyToRewind;
             if (targetKey) {
               this.commandStack.removeUpToValue(getCommand(targetKey));
@@ -65,7 +72,10 @@ export class AppManager {
           const resultCommand = getCommand(next.commandKey);
 
           if (resultCommand) {
-            this.commandStack.push({ value: resultCommand, ...(next.config ? { config: next.config } : {}) });
+            this.commandStack.push({
+              value: resultCommand,
+              ...(next.config ? { config: next.config } : {}),
+            });
           }
         }
       } catch (error) {

@@ -1,4 +1,6 @@
-type ExecutableObject = { execute(config?: ExecutableConfig): Promise<unknown> };
+type ExecutableObject = {
+  execute(config?: ExecutableConfig): Promise<unknown>;
+};
 
 type ExecutableConfig = Record<string, unknown> | undefined;
 
@@ -25,7 +27,7 @@ export class Stack<T extends Node<ExecutableObject, ExecutableConfig>> {
   }
 
   removeAtValue(value: ExecutableObject): boolean {
-    const nodeIndex = this.stack.findIndex(node => node.value === value);
+    const nodeIndex = this.stack.findIndex((node) => node.value === value);
     if (nodeIndex === -1) {
       return false;
     }
@@ -34,12 +36,19 @@ export class Stack<T extends Node<ExecutableObject, ExecutableConfig>> {
   }
 
   removeUpToValue(value: ExecutableObject): boolean {
-    const nodeIndex = this.stack.findIndex(node => node.value === value);
+    const nodeIndex = this.stack.findIndex((node) => node.value === value);
     if (nodeIndex === -1) {
       return false;
     }
 
-    return this.stack.splice(nodeIndex, this.stack.length - nodeIndex).length === this.stack.length - nodeIndex;
+    if (nodeIndex === this.stack.length - 1) {
+      return true;
+    }
+
+    return (
+      this.stack.splice(nodeIndex, this.stack.length - nodeIndex).length ===
+      this.stack.length - nodeIndex
+    );
   }
 
   peek(): T | undefined {

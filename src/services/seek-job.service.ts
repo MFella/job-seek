@@ -13,6 +13,7 @@ import {
   toSeekJobRequest,
   toSeekJobsRequest,
 } from '../resolvers/seek-job.ts';
+import { CacheLastAsyncResult } from '../decorators/cache-last-result.ts';
 
 @injectable()
 export class SeekJobService {
@@ -27,6 +28,7 @@ export class SeekJobService {
     @inject(RestDataService) private readonly restDataService: RestDataService
   ) { }
 
+  @CacheLastAsyncResult()
   async seekJobs(
     jobSeekSettings: SeekJobSettings,
     abortSignal?: AbortSignal

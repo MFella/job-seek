@@ -7,6 +7,7 @@ import { LoggerService } from '../../logger/logger.service.ts';
 
 export class SeekJobsCommand extends BaseCommand {
   private static readonly COMMAND_KEY: CommandKey = 'seek-jobs';
+  private lastSeekedJobId: string | null = null;
 
   constructor(
     protected readonly message: string,
@@ -38,24 +39,44 @@ export class SeekJobsCommand extends BaseCommand {
       );
       return [{ commandKey: 'show-main-menu' }];
     }
-    this.logger.info(`Seeking jobs with config: ${JSON.stringify(jobSeekSettings)}`);
+    this.logger.info(
+      `Seeking jobs with config: ${JSON.stringify(jobSeekSettings)}`
+    );
 
-    const seekedJobs = await this.seekJobService.seekJobs({
-      seekSources: jobSeekSettings.seekingSources,
-      techstack: jobSeekSettings.techstack,
-    }, this.executionTerminationSignal);
+    const seekedJobs = await this.seekJobService.seekJobs(
+      {
+        seekSources: jobSeekSettings.seekingSources,
+        techstack: jobSeekSettings.techstack,
+      },
+      this.executionTerminationSignal
+    );
 
-    const selectedJob = await select({
-      choices: seekedJobs.map((jobOffer) => ({
-        value: jobOffer.id,
-        slug: jobOffer.slug,
-        name: `${jobOffer.title} | ${jobOffer.company}`,
-      })),
-      pageSize: 5,
-      message: this.message,
-    }, {
-      signal: this.executionTerminationSignal,
-    });
+    const prevSelectedJobIndex = seekedJobs.findIndex(
+      (jobOffer) => jobOffer.id === this.lastSeekedJobId
+    );
+
+    if (prevSelectedJobIndex > -1) {
+      seekedJobs.push(...seekedJobs.splice(0, prevSelectedJobIndex));
+    }
+
+    const jobChoices = seekedJobs.map((jobOffer) => ({
+      value: jobOffer.id,
+      slug: jobOffer.slug,
+      name: `${jobOffer.title} | ${jobOffer.company}`,
+    }));
+
+    const selectedJob = await select(
+      {
+        choices: jobChoices,
+        pageSize: 5,
+        message: this.message,
+      },
+      {
+        signal: this.executionTerminationSignal,
+      }
+    );
+
+    this.lastSeekedJobId = selectedJob;
 
     const selectedJobOffer = seekedJobs.find(
       (jobOffer) => jobOffer.id === selectedJob
@@ -66,7 +87,17 @@ export class SeekJobsCommand extends BaseCommand {
       return [{ commandKey: 'show-main-menu' }];
     }
 
-    this.logger.info(`Slug: ${selectedJobOffer.slug} | ${selectedJobOffer.seekSource}`);
-    return [{ commandKey: 'seek-job', config: { slug: selectedJobOffer.slug, seekSource: selectedJobOffer.seekSource } }];
+    this.logger.info(
+      `Slug: ${selectedJobOffer.slug} | ${selectedJobOffer.seekSource}`
+    );
+    return [
+      {
+        commandKey: 'seek-job',
+        config: {
+          slug: selectedJobOffer.slug,
+          seekSource: selectedJobOffer.seekSource,
+        },
+      },
+    ];
   }
 }
