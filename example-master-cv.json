@@ -1,0 +1,33 @@
+{
+  "fullName": "Jane Doe",
+  "contact": {
+    "email": "jane@example.com",
+    "phone": "+48 123 456 789",
+    "location": "Warsaw, Poland",
+    "links": ["github.com/janedoe", "linkedin.com/in/janedoe"]
+  },
+  "summary": "Backend engineer with 8 years building scalable APIs...",
+  "skills": ["TypeScript", "Node.js", "PostgreSQL", "AWS", "Docker"],
+  "experience": [
+    {
+      "company": "Acme Corp",
+      "title": "Senior Backend Engineer",
+      "startDate": "2021-03",
+      "endDate": "Present",
+      "bullets": [
+        "Led migration from monolith to microservices, cutting deploy time by 60%",
+        "Owned the payments service handling 2M transactions/month"
+      ]
+    }
+  ],
+  "education": [
+    {
+      "institution": "University of Warsaw",
+      "degree": "BSc Computer Science",
+      "startDate": "2012",
+      "endDate": "2016"
+    }
+  ],
+  "certifications": ["AWS Certified Developer"],
+  "languages": ["English", "Polish"]
+}

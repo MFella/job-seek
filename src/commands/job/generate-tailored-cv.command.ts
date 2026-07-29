@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import { input } from '@inquirer/prompts';
+import { input, select } from '@inquirer/prompts';
 import { BaseCommand, NextCommandToExecute } from '../base-command.ts';
 import { CommandConfigs, CommandKey } from '../../questions/questions.ts';
 import { LocalStorageService } from '../../services/local-storage.service.ts';
@@ -7,6 +7,7 @@ import { TailoredCvService } from '../../services/tailored-cv.service.ts';
 import { CvPdfService } from '../../services/cv-pdf.service.ts';
 import { LoggerService } from '../../logger/logger.service.ts';
 import { MasterCv } from '../../types/tailored-cv.ts';
+import { CV_LAYOUTS, CvLayout } from '../../templates/cv-template.ts';
 import open from 'open';
 
 const sanitizeForFilename = (value: string): string =>
@@ -53,6 +54,18 @@ export class GenerateTailoredCvCommand extends BaseCommand<'generate-tailored-cv
       this.executionTerminationSignal
     );
 
+    const layout = await select<CvLayout>(
+      {
+        message: 'Which resume layout would you like?',
+        choices: CV_LAYOUTS.map(({ value, name, description }) => ({
+          value,
+          name,
+          description,
+        })),
+      },
+      { signal: this.executionTerminationSignal }
+    );
+
     const outputPath = await input(
       {
         message: 'Where should the tailored CV PDF be saved?',
@@ -61,7 +74,7 @@ export class GenerateTailoredCvCommand extends BaseCommand<'generate-tailored-cv
       { signal: this.executionTerminationSignal }
     );
 
-    await this.cvPdfService.generatePdf(tailoredCv, outputPath);
+    await this.cvPdfService.generatePdf(tailoredCv, outputPath, layout);
     this.logger.info(`Tailored CV saved to: ${outputPath}`);
 
     try {

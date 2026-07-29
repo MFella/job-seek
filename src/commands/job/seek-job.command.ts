@@ -42,6 +42,7 @@ export class SeekJobCommand extends BaseCommand<'seek-job'> {
       slug: config.slug,
     });
 
+    console.log('real description: ', seekedJob.description);
     const convertedDescription = compiledConvert(seekedJob.description);
 
     this.logger.info(`Seeked job description:\n${convertedDescription}`);
@@ -80,7 +81,7 @@ export class SeekJobCommand extends BaseCommand<'seek-job'> {
           config: {
             jobTitle: seekedJob.title,
             company: seekedJob.company,
-            jobDescriptionText: convertedDescription,
+            jobDescriptionText: seekedJob.description,
           },
         },
       ];

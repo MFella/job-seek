@@ -56,25 +56,25 @@ export class AppManager {
           this.commandStack.removeAtValue(nextCommand);
         }
 
-        for (const next of result) {
-          if (next.commandKey === 'exit') {
+        for (const { commandKey, config } of result) {
+          if (commandKey === 'exit') {
             this.commandStack.clear();
             return;
           }
 
-          if (next.commandKey === 'go-back') {
-            const targetKey = next.config?.commandKeyToRewind;
+          if (commandKey === 'go-back') {
+            const targetKey = config?.commandKeyToRewind;
             if (targetKey) {
               this.commandStack.removeUpToValue(getCommand(targetKey));
             }
             continue;
           }
-          const resultCommand = getCommand(next.commandKey);
+          const resultCommand = getCommand(commandKey);
 
           if (resultCommand) {
             this.commandStack.push({
               value: resultCommand,
-              ...(next.config ? { config: next.config } : {}),
+              ...(config ? { config } : {}),
             });
           }
         }

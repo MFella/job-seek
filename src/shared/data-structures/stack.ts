@@ -41,8 +41,9 @@ export class Stack<T extends Node<ExecutableObject, ExecutableConfig>> {
       return false;
     }
 
+    // stack is already at index - no need to return
     if (nodeIndex === this.stack.length - 1) {
-      return true;
+      return false;
     }
 
     return (

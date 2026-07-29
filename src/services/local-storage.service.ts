@@ -10,6 +10,7 @@ import { LoggerService } from '../logger/logger.service.ts';
 type Preferences = {
   seekingSources: SeekSource[];
   techstack: string[];
+  // Path for JSON file to create tailored CV's from
   masterCvPath: string;
 };
 

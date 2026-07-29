@@ -6,3 +6,5 @@ dist
 .env.local
 storage
 *.enc
+*.pdf
+example-master-cv.json

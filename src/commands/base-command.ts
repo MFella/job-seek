@@ -13,8 +13,10 @@ export abstract class BaseCommand<T extends CommandKey = CommandKey> {
   constructor(
     protected readonly message: string,
     protected readonly isCommandPermanent: boolean = true
-  ) { }
-  abstract execute(config?: T extends keyof CommandConfigs ? CommandConfigs[T] : never): Promise<NextCommandToExecute[]>;
+  ) {}
+  abstract execute(
+    config?: T extends keyof CommandConfigs ? CommandConfigs[T] : never
+  ): Promise<NextCommandToExecute[]>;
 
   abstract getKey(): CommandKey;
 
@@ -37,6 +39,4 @@ export abstract class BaseCommand<T extends CommandKey = CommandKey> {
   isPermanent(): boolean {
     return this.isCommandPermanent;
   }
-
-  protected onCommandEnd(): void { }
 }
