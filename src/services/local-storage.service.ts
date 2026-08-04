@@ -10,6 +10,8 @@ import { LoggerService } from '../logger/logger.service.ts';
 type Preferences = {
   seekingSources: SeekSource[];
   techstack: string[];
+  // Path for JSON file to create tailored CV's from
+  masterCvPath: string;
 };
 
 @injectable()
@@ -17,9 +19,7 @@ export class LocalStorageService {
   private readonly encryptionInstance;
   private readonly filePath: string;
 
-  constructor(
-    @inject(LoggerService) private readonly logger: LoggerService
-  ) {
+  constructor(@inject(LoggerService) private readonly logger: LoggerService) {
     this.encryptionInstance = new Encryption(
       chacha20poly1305({
         id: 'app',
@@ -69,7 +69,7 @@ export class LocalStorageService {
     try {
       const encryptedData = await readFile(this.filePath, 'utf-8');
       const decryptedData =
-         this.encryptionInstance.decrypt<string>(encryptedData);
+        this.encryptionInstance.decrypt<string>(encryptedData);
       if (!decryptedData) {
         return null;
       }
