@@ -6,12 +6,14 @@ import { chacha20poly1305 } from '@boringnode/encryption/drivers/chacha20_poly13
 import { inject, injectable } from 'tsyringe';
 import { SeekSource } from '../resolvers/seek-job.ts';
 import { LoggerService } from '../logger/logger.service.ts';
+import type { Cookie } from './web-scrapper.service.ts';
 
 type Preferences = {
   seekingSources: SeekSource[];
   techstack: string[];
   // Path for JSON file to create tailored CV's from
   masterCvPath: string;
+  justJoinItAuthSession: { cookies: Cookie[]; fetchedAt: string };
 };
 
 @injectable()

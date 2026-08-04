@@ -22,7 +22,8 @@ type CrawlerConfig = {
 
 @injectable()
 export class WebScrapperService {
-  private static readonly SCRAPPER_TIMEOUT = 20_000;
+  // Allows for a full headless attempt plus a fallback off-screen attempt if Cloudflare blocks headless mode.
+  private static readonly SCRAPPER_TIMEOUT = 45_000;
   constructor(
     @inject(LoggerService) private readonly logger: LoggerService
   ) {}

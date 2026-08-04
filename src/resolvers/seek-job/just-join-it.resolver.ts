@@ -11,10 +11,12 @@ import type {
   SeekJobsRequest,
 } from '../seek-job.d.ts';
 import { inject, singleton } from 'tsyringe';
+import { HTTPError } from 'ky';
 import type { AuthSession } from '../../services/web-scrapper.service.ts';
 import { WebScrapperService } from '../../services/web-scrapper.service.ts';
 import { RestDataService } from '../../rest/rest-data.service.ts';
 import { LoggerService } from '../../logger/logger.service.ts';
+import { LocalStorageService } from '../../services/local-storage.service.ts';
 
 type Request = SeekJobsRequest<'just-join-it'>;
 type KyHeadersInit = NonNullable<RequestInit['headers']> | Record<string, string | undefined>;
@@ -22,6 +24,7 @@ type KyHeadersInit = NonNullable<RequestInit['headers']> | Record<string, string
 @singleton()
 export class JustJoinItResolver extends SeekJobResolver<'just-join-it'> {
   private static readonly JOB_OFFERS_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+  private static readonly AUTH_SESSION_TTL_MS = 45 * 60 * 1000;
 
   private authSession: AuthSession | null = null;
   private cachedResolvedJobsMap: Map<string, { savedDate: Date; offers: JobOfferRaw<'just-join-it'>[] }> = new Map();
@@ -29,7 +32,8 @@ export class JustJoinItResolver extends SeekJobResolver<'just-join-it'> {
   constructor(
     @inject(RestDataService) restDataService: RestDataService,
     @inject(WebScrapperService) webScrapperService: WebScrapperService,
-    @inject(LoggerService) private readonly logger: LoggerService
+    @inject(LoggerService) private readonly logger: LoggerService,
+    @inject(LocalStorageService) private readonly localStorageService: LocalStorageService
   ) {
     super(restDataService, webScrapperService);
   }
@@ -46,16 +50,16 @@ export class JustJoinItResolver extends SeekJobResolver<'just-join-it'> {
       }
     }
 
-    if (!this.authSession) {
-      this.authSession = await this.retryAuthSession(abortSignal);
-    }
+    await this.getOrRefreshAuthSession(abortSignal);
 
-    const jobOffers = await this.restDataService.get<
-      GetJobBoardJobsApiResponse<'just-join-it'>
-    >(this.getSeekJobsUrl(seekJobsRequest), {
-      headers: this.getKyGetHeaders(),
-      signal: abortSignal,
-    });
+    const jobOffers = await this.fetchWithAuthRetry(
+      () =>
+        this.restDataService.get<GetJobBoardJobsApiResponse<'just-join-it'>>(
+          this.getSeekJobsUrl(seekJobsRequest),
+          { headers: this.getKyGetHeaders(), signal: abortSignal }
+        ),
+      abortSignal
+    );
 
     this.logger.info(`Fetched list length: ${jobOffers.data.length}`);
     const mappedJobOffers = jobOffers.data.map((jobOffer) => ({
@@ -73,16 +77,16 @@ export class JustJoinItResolver extends SeekJobResolver<'just-join-it'> {
   }
 
   async resolveOne(seekJobRequest: SeekJobRequest<'just-join-it'>, abortSignal?: AbortSignal): Promise<DetailedJobOfferRaw<'just-join-it'>> {
-    if (!this.authSession) {
-      this.authSession = await this.retryAuthSession(abortSignal);
-    }
+    await this.getOrRefreshAuthSession(abortSignal);
 
-    const jobOffer = await this.restDataService.get<
-      GetJobBoardSingleJobApiResponse<'just-join-it'>
-    >(this.getSeekJobUrl(seekJobRequest), {
-      headers: this.getKyGetHeaders(),
-      signal: abortSignal
-    });
+    const jobOffer = await this.fetchWithAuthRetry(
+      () =>
+        this.restDataService.get<GetJobBoardSingleJobApiResponse<'just-join-it'>>(
+          this.getSeekJobUrl(seekJobRequest),
+          { headers: this.getKyGetHeaders(), signal: abortSignal }
+        ),
+      abortSignal
+    );
 
     return { ...jobOffer, company: jobOffer.companyName, url: jobOffer.applyUrl, seekSource: 'just-join-it', description: jobOffer.body };
   }
@@ -107,6 +111,45 @@ export class JustJoinItResolver extends SeekJobResolver<'just-join-it'> {
 
   private getSeekJobUrl(seekJobRequest: SeekJobRequest<'just-join-it'>): string {
     return `${this.getBaseUrl()}${this.getSeekJobDetailsSuffix(seekJobRequest)}`
+  }
+
+  private async getOrRefreshAuthSession(abortSignal?: AbortSignal): Promise<AuthSession> {
+    if (this.authSession) {
+      return this.authSession;
+    }
+
+    const cached = await this.localStorageService.loadPreferences('justJoinItAuthSession');
+    if (cached && Date.now() - new Date(cached.fetchedAt).getTime() < JustJoinItResolver.AUTH_SESSION_TTL_MS) {
+      this.logger.info('Using cached just-join-it auth session');
+      this.authSession = { cookies: cached.cookies };
+      return this.authSession;
+    }
+
+    return this.refreshAuthSession(abortSignal);
+  }
+
+  private async refreshAuthSession(abortSignal?: AbortSignal): Promise<AuthSession> {
+    const authSession = await this.retryAuthSession(abortSignal);
+    this.authSession = authSession;
+    await this.localStorageService.savePreferences('justJoinItAuthSession', {
+      cookies: authSession.cookies,
+      fetchedAt: new Date().toISOString(),
+    });
+    return authSession;
+  }
+
+  private async fetchWithAuthRetry<T>(request: () => Promise<T>, abortSignal?: AbortSignal): Promise<T> {
+    try {
+      return await request();
+    } catch (error) {
+      if (error instanceof HTTPError && (error.response.status === 401 || error.response.status === 403)) {
+        this.logger.info('just-join-it rejected cached auth session, refreshing and retrying once');
+        this.authSession = null;
+        await this.refreshAuthSession(abortSignal);
+        return await request();
+      }
+      throw error;
+    }
   }
 
   private async retryAuthSession(abortSignal?: AbortSignal): Promise<AuthSession> {
