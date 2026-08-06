@@ -1,0 +1,41 @@
+<section class="mx-auto max-w-4xl p-6">
+  <h1 class="text-2xl font-semibold text-slate-900">Job offers dashboard</h1>
+  <p class="mt-1 text-sm text-slate-500">
+    Filter job offers gathered by job-seek-api.
+  </p>
+
+  <input
+    type="search"
+    placeholder="Filter by title, company or location…"
+    class="mt-4 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+    [ngModel]="searchTerm()"
+    (ngModelChange)="searchTerm.set($event)"
+  />
+
+  @if (status() === 'loading') {
+    <p class="mt-6 text-sm text-slate-500">Loading job offers…</p>
+  }
+
+  @if (status() === 'error') {
+    <p class="mt-6 text-sm text-red-600">
+      Could not reach the API. Is job-seek-api running?
+    </p>
+  }
+
+  @if (status() === 'ready' && filteredJobOffers().length === 0) {
+    <p class="mt-6 text-sm text-slate-500">No job offers match this filter.</p>
+  }
+
+  @if (status() === 'ready' && filteredJobOffers().length > 0) {
+    <ul class="mt-6 divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white">
+      @for (offer of filteredJobOffers(); track offer.id) {
+        <li class="px-4 py-3">
+          <p class="font-medium text-slate-900">{{ offer.title }}</p>
+          <p class="text-sm text-slate-500">
+            {{ offer.company }} · {{ offer.location }} · {{ offer.source }}
+          </p>
+        </li>
+      }
+    </ul>
+  }
+</section>
