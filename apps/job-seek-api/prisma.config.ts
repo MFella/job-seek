@@ -9,6 +9,10 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   datasource: {
-    url: process.env["DATABASE_URL"],
+    // CLI commands (migrate, db push, studio) need DIRECT_URL (session pooler) rather
+    // than DATABASE_URL (transaction pooler), which doesn't support the prepared
+    // statements/advisory locks migrations rely on. The running app never loads this
+    // file - PrismaService reads DATABASE_URL directly - so this only affects the CLI.
+    url: process.env["DIRECT_URL"] ?? process.env["DATABASE_URL"],
   },
 });
