@@ -1,5 +1,6 @@
 node_modules
 dist
+build
 .env
 .vscode
 .DS_Store
@@ -8,3 +9,15 @@ storage
 *.enc
 *.pdf
 example-master-cv.json
+
+# turborepo
+.turbo
+
+# angular
+.angular
+
+# nest / prisma
+apps/job-seek-api/generated
+
+# coverage
+coverage
