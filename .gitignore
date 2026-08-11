@@ -17,7 +17,7 @@ example-master-cv.json
 .angular
 
 # nest / prisma
-apps/api/generated
+apps/job-seek-api/generated
 
 # coverage
 coverage

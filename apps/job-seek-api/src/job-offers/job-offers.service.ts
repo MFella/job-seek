@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateJobOfferDto } from './dto/create-job-offer.dto';
 import { UpdateJobOfferDto } from './dto/update-job-offer.dto';
@@ -7,13 +12,26 @@ import { UpdateJobOfferDto } from './dto/update-job-offer.dto';
 export class JobOffersService {
   constructor(private readonly prisma: PrismaService) {}
 
-  create(createJobOfferDto: CreateJobOfferDto) {
-    return this.prisma.jobOffer.create({
-      data: {
-        ...createJobOfferDto,
-        postedAt: new Date(createJobOfferDto.postedAt),
-      },
-    });
+  async create(createJobOfferDto: CreateJobOfferDto) {
+    try {
+      return await this.prisma.jobOffer.create({
+        data: {
+          ...createJobOfferDto,
+          postedAt: new Date(createJobOfferDto.postedAt),
+        },
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException(
+          `Job offer with url ${createJobOfferDto.url} already exists`,
+        );
+      }
+
+      throw error;
+    }
   }
 
   findAll() {
